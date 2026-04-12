@@ -24,6 +24,9 @@ dev = [
   "pytest>=8.0.0",
 ]
 
+[project.scripts]
+mocrdown = "mocrdown.cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["mocrdown"]
 

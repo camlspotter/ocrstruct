@@ -41,6 +41,8 @@ def convert_pdf_to_middle_and_markdown(
     pdf_path: str,
     *,
     tmpdir: str,
+    image_dir: str | None = None,
+    markdown_image_bucket_path: str = "images",
     backend: str | None = None,
     method: str | None = None,
     lang: str | None = None,
@@ -60,7 +62,11 @@ def convert_pdf_to_middle_and_markdown(
     Path(tmpdir).mkdir(parents=True, exist_ok=True)
 
     if backend == "pipeline":
-        local_image_dir, _local_md_dir = prepare_env(tmpdir, file_name, method)
+        if image_dir is None:
+            local_image_dir, _local_md_dir = prepare_env(tmpdir, file_name, method)
+        else:
+            local_image_dir = image_dir
+            Path(local_image_dir).mkdir(parents=True, exist_ok=True)
         image_writer = FileBasedDataWriter(local_image_dir)
         middle_json_holder: dict[str, dict] = {}
 
@@ -84,14 +90,22 @@ def convert_pdf_to_middle_and_markdown(
             table_enable=True,
         )
         middle_json = middle_json_holder["middle_json"]
-        md_content = pipeline_union_make(middle_json["pdf_info"], MakeMode.MM_MD, "images")
+        md_content = pipeline_union_make(
+            middle_json["pdf_info"],
+            MakeMode.MM_MD,
+            markdown_image_bucket_path,
+        )
         extracted_by = "mineru/pipeline"
 
     elif backend.startswith("vlm-"):
         backend_name = backend[4:]
         if backend_name == "auto-engine":
             backend_name = get_vlm_engine(inference_engine="auto", is_async=False)
-        local_image_dir, _local_md_dir = prepare_env(tmpdir, file_name, "vlm")
+        if image_dir is None:
+            local_image_dir, _local_md_dir = prepare_env(tmpdir, file_name, "vlm")
+        else:
+            local_image_dir = image_dir
+            Path(local_image_dir).mkdir(parents=True, exist_ok=True)
         image_writer = FileBasedDataWriter(local_image_dir)
         middle_json, _infer = vlm_doc_analyze(
             pdf_bytes,
@@ -99,7 +113,11 @@ def convert_pdf_to_middle_and_markdown(
             backend=backend_name,
             server_url=server_url,
         )
-        md_content = vlm_union_make(middle_json["pdf_info"], MakeMode.MM_MD, "images")
+        md_content = vlm_union_make(
+            middle_json["pdf_info"],
+            MakeMode.MM_MD,
+            markdown_image_bucket_path,
+        )
         extracted_by = f"mineru/vlm:{backend_name}"
 
     elif backend.startswith("hybrid-"):
@@ -107,7 +125,11 @@ def convert_pdf_to_middle_and_markdown(
         if backend_name == "auto-engine":
             backend_name = get_vlm_engine(inference_engine="auto", is_async=False)
         parse_method = f"hybrid_{method}"
-        local_image_dir, _local_md_dir = prepare_env(tmpdir, file_name, parse_method)
+        if image_dir is None:
+            local_image_dir, _local_md_dir = prepare_env(tmpdir, file_name, parse_method)
+        else:
+            local_image_dir = image_dir
+            Path(local_image_dir).mkdir(parents=True, exist_ok=True)
         image_writer = FileBasedDataWriter(local_image_dir)
         middle_json, _infer, _ocr_enabled = hybrid_doc_analyze(
             pdf_bytes,
@@ -118,7 +140,11 @@ def convert_pdf_to_middle_and_markdown(
             inline_formula_enable=True,
             server_url=server_url,
         )
-        md_content = vlm_union_make(middle_json["pdf_info"], MakeMode.MM_MD, "images")
+        md_content = vlm_union_make(
+            middle_json["pdf_info"],
+            MakeMode.MM_MD,
+            markdown_image_bucket_path,
+        )
         extracted_by = f"mineru/hybrid:{backend_name}"
 
     else:
