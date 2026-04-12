@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import NamedTuple
@@ -21,7 +22,9 @@ from mineru.utils.enum_class import MakeMode
 
 from mocrdown.middle_to_elements import to_elements
 from mocrdown.types import Element
-from utils import logger
+
+
+logger = logging.getLogger(__name__)
 
 
 class MineruMarkdownResult(NamedTuple):
