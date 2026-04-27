@@ -36,6 +36,8 @@ for e in elements[:5]:
 ## CLI
 
 `pandoc` is optional. If it is installed, `ocrstruct` also writes `text.html`.
+Given a PDF, `ocrstruct` writes `middle.json`, `elements.json`, `text.md`, and `text.html`.
+`text.md` is the RAG-oriented normalized markdown, while `text.html` is rendered from a temporary markdown variant that keeps HTML tables intact.
 
 If [ocrstruct/style.html](/Users/jun/mocrdown/ocrstruct/style.html) exists, it is passed to Pandoc with `--include-in-header`.
 
@@ -43,13 +45,19 @@ If [ocrstruct/style.html](/Users/jun/mocrdown/ocrstruct/style.html) exists, it i
 uv run python -m ocrstruct.cli sample.pdf
 ```
 
-If `middle.json` already exists, you can skip the expensive OCR step and regenerate `text.md` and `text.html` directly:
+If `middle.json` already exists, you can skip the expensive OCR step and regenerate `elements.json`, `text.md`, and `text.html` directly:
 
 ```bash
 uv run python -m ocrstruct.cli --from-middle /path/to/middle.json
 ```
 
-When `--from-middle` is used, the output directory defaults to the directory containing `middle.json`.
+If `elements.json` already exists, you can regenerate `text.md` and `text.html` directly:
+
+```bash
+uv run python -m ocrstruct.cli --from-elements /path/to/elements.json
+```
+
+When `--from-middle` or `--from-elements` is used, the output directory defaults to the directory containing that input file.
 
 Example `ocrstruct/style.html`:
 
@@ -85,6 +93,9 @@ th {
 Public API (from `ocrstruct.__init__`):
 
 - `convert_pdf_to_elements(pdf_path, *, tmpdir, img_bucket_path="images", backend=None, method=None, lang=None, server_url=None)`
+- `dump_elements_json(elements, path)`
+- `load_elements_json(path)`
+- `elements_to_markdown(elements)`
 - `Element`, `Location`, `BBox`
 
 ## Environment Variables

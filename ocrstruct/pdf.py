@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from typing import Literal
 from typing import NamedTuple
 from typing import Any
 
@@ -22,7 +23,7 @@ from mineru.utils.engine_utils import get_vlm_engine
 from mineru.utils.enum_class import MakeMode
 from pypdf import PdfReader
 
-from ocrstruct.middle_to_elements import to_elements, to_markdown
+from ocrstruct.middle_to_elements import to_elements
 from ocrstruct.types import BBox, Element, LinkRegion
 
 
@@ -37,6 +38,35 @@ class MineruMarkdownResult(NamedTuple):
 
 def middle_json_to_elements(middle_json: dict, *, img_bucket_path: str = "images") -> list[Element]:
     return to_elements(middle_json, img_bucket_path=img_bucket_path)
+
+
+def elements_to_markdown(
+    elements: list[Element],
+    *,
+    mode: Literal["rag", "html"] = "rag",
+) -> str:
+    if mode == "rag":
+        return "\n".join(element.to_str() for element in elements)
+    if mode == "html":
+        return "\n".join(element.to_markdown() for element in elements)
+    raise ValueError(f"Unsupported markdown mode: {mode}")
+
+
+def dump_elements_json(elements: list[Element], path: str | Path) -> Path:
+    out = Path(path)
+    out.write_text(
+        json.dumps([element.model_dump(mode="json") for element in elements], ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return out
+
+
+def load_elements_json(elements_json_path: str | Path) -> list[Element]:
+    path = Path(elements_json_path)
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise ValueError("elements.json must be a list")
+    return [Element.model_validate(item) for item in raw]
 
 
 def _md_content_to_text(md_content: Any) -> str | None:
@@ -76,9 +106,13 @@ def render_middle_json_to_markdown(
             logger.debug("Markdown render via %s failed", extracted_by, exc_info=True)
 
     logger.warning("Falling back to ocrstruct markdown renderer for middle.json")
+    fallback_elements = middle_json_to_elements(
+        middle_json,
+        img_bucket_path=markdown_image_bucket_path,
+    )
     return MineruMarkdownResult(
         middle_json=middle_json,
-        markdown_text=to_markdown(middle_json, img_bucket_path=markdown_image_bucket_path),
+        markdown_text=elements_to_markdown(fallback_elements),
         extracted_by="ocrstruct/fallback",
     )
 

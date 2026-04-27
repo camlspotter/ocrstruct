@@ -4,9 +4,17 @@ import argparse
 import logging
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
-from ocrstruct.pdf import convert_pdf_to_middle_and_markdown, load_middle_json, render_middle_json_to_markdown
+from ocrstruct.pdf import (
+    convert_pdf_to_middle_and_markdown,
+    dump_elements_json,
+    elements_to_markdown,
+    load_elements_json,
+    load_middle_json,
+    middle_json_to_elements,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -18,6 +26,10 @@ def _default_output_dir(pdf_path: Path) -> Path:
 
 def _default_middle_output_dir(middle_json_path: Path) -> Path:
     return middle_json_path.parent
+
+
+def _default_elements_output_dir(elements_json_path: Path) -> Path:
+    return elements_json_path.parent
 
 
 def _default_html_header() -> Path | None:
@@ -55,11 +67,66 @@ def _convert_markdown_to_html_if_pandoc_exists(text_md: Path) -> Path | None:
     return text_html
 
 
-def _write_outputs(outdir: Path, markdown_text: str | None) -> tuple[Path, Path | None]:
+def _convert_markdown_string_to_html_if_pandoc_exists(markdown_text: str, text_html: Path) -> Path | None:
+    pandoc = shutil.which("pandoc")
+    if pandoc is None:
+        logger.info("pandoc not found; skip HTML conversion")
+        return None
+
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        suffix=".md",
+        prefix="ocrstruct-html-render-",
+        delete=False,
+    ) as tmp:
+        tmp.write(markdown_text)
+        tmp_md = Path(tmp.name)
+
+    command = [
+        pandoc,
+        "--from=markdown+tex_math_dollars",
+        "--mathjax",
+        "--standalone",
+        str(tmp_md),
+        "-o",
+        str(text_html),
+    ]
+    header_include = _default_html_header()
+    if header_include is not None:
+        command.extend(["--include-in-header", str(header_include)])
+
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        logger.warning("pandoc failed (exit=%s); skip HTML output", e.returncode)
+        return None
+    finally:
+        tmp_md.unlink(missing_ok=True)
+    return text_html
+
+
+def _write_outputs(
+    outdir: Path,
+    markdown_text: str | None,
+    *,
+    html_markdown_text: str | None = None,
+) -> tuple[Path, Path | None]:
     text_md = outdir / "text.md"
     text_md.write_text(markdown_text or "", encoding="utf-8")
-    text_html = _convert_markdown_to_html_if_pandoc_exists(text_md)
+    if html_markdown_text is None:
+        text_html = _convert_markdown_to_html_if_pandoc_exists(text_md)
+    else:
+        text_html = _convert_markdown_string_to_html_if_pandoc_exists(
+            html_markdown_text,
+            outdir / "text.html",
+        )
     return text_md, text_html
+
+
+def _write_elements_json(outdir: Path, elements_json_path: Path | None, elements: list) -> Path:
+    target = elements_json_path or (outdir / "elements.json")
+    return dump_elements_json(elements, target)
 
 
 def _validate_from_middle_args(args: argparse.Namespace) -> None:
@@ -74,6 +141,19 @@ def _validate_from_middle_args(args: argparse.Namespace) -> None:
         raise ValueError(f"{', '.join(used)} cannot be used with --from-middle")
 
 
+def _validate_from_elements_args(args: argparse.Namespace) -> None:
+    ignored_args = {
+        "--backend": args.backend,
+        "--method": args.method,
+        "--lang": args.lang,
+        "--server-url": args.server_url,
+        "--from-middle": args.from_middle,
+    }
+    used = [name for name, value in ignored_args.items() if value is not None]
+    if used:
+        raise ValueError(f"{', '.join(used)} cannot be used with --from-elements")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="ocrstruct",
@@ -82,11 +162,15 @@ def main() -> int:
     parser.add_argument("pdf", nargs="?", help="input PDF path")
     parser.add_argument(
         "--from-middle",
-        help="reuse an existing middle.json and render text.md/text.html without re-running OCR",
+        help="reuse an existing middle.json and render elements.json/text.md/text.html without re-running OCR",
+    )
+    parser.add_argument(
+        "--from-elements",
+        help="reuse an existing elements.json and render text.md/text.html without re-running OCR",
     )
     parser.add_argument(
         "--outdir",
-        help="output directory (default: <pdf-basename-without-ext>/ or directory containing middle.json)",
+        help="output directory (default: <pdf-basename-without-ext>/ or directory containing middle.json/elements.json)",
     )
     parser.add_argument("--backend", help="MINERU_BACKEND override")
     parser.add_argument("--method", help="MINERU_METHOD override")
@@ -102,6 +186,9 @@ def main() -> int:
 
     logging.basicConfig(level=getattr(logging, args.log_level))
 
+    if args.from_middle and args.from_elements:
+        raise ValueError("--from-middle and --from-elements cannot be used together")
+
     if args.from_middle:
         _validate_from_middle_args(args)
         middle_json_path = Path(args.from_middle).expanduser().resolve()
@@ -109,13 +196,36 @@ def main() -> int:
             raise FileNotFoundError(f"middle.json not found: {middle_json_path}")
         outdir = Path(args.outdir).expanduser().resolve() if args.outdir else _default_middle_output_dir(middle_json_path)
         outdir.mkdir(parents=True, exist_ok=True)
-        result = render_middle_json_to_markdown(
-            load_middle_json(middle_json_path),
-            markdown_image_bucket_path="images",
+        middle_json = load_middle_json(middle_json_path)
+        elements = middle_json_to_elements(middle_json, img_bucket_path="images")
+        elements_json_path = _write_elements_json(outdir, None, elements)
+        text_md, text_html = _write_outputs(
+            outdir,
+            elements_to_markdown(elements, mode="rag"),
+            html_markdown_text=elements_to_markdown(elements, mode="html"),
         )
-        text_md, text_html = _write_outputs(outdir, result.markdown_text)
-        logger.info("Rendered markdown from middle JSON: %s", middle_json_path)
-        logger.info("Markdown renderer: %s", result.extracted_by)
+        logger.info("Rendered elements from middle JSON: %s", middle_json_path)
+        logger.info("Wrote elements: %s", elements_json_path)
+        logger.info("Wrote markdown: %s", text_md)
+        if text_html is not None:
+            logger.info("Wrote html: %s", text_html)
+        print(text_md)
+        return 0
+
+    if args.from_elements:
+        _validate_from_elements_args(args)
+        elements_json_path = Path(args.from_elements).expanduser().resolve()
+        if not elements_json_path.exists():
+            raise FileNotFoundError(f"elements.json not found: {elements_json_path}")
+        outdir = Path(args.outdir).expanduser().resolve() if args.outdir else _default_elements_output_dir(elements_json_path)
+        outdir.mkdir(parents=True, exist_ok=True)
+        elements = load_elements_json(elements_json_path)
+        text_md, text_html = _write_outputs(
+            outdir,
+            elements_to_markdown(elements, mode="rag"),
+            html_markdown_text=elements_to_markdown(elements, mode="html"),
+        )
+        logger.info("Rendered markdown from elements JSON: %s", elements_json_path)
         logger.info("Wrote markdown: %s", text_md)
         if text_html is not None:
             logger.info("Wrote html: %s", text_html)
@@ -123,7 +233,7 @@ def main() -> int:
         return 0
 
     if not args.pdf:
-        raise ValueError("pdf is required unless --from-middle is used")
+        raise ValueError("pdf is required unless --from-middle or --from-elements is used")
 
     pdf_path = Path(args.pdf).expanduser().resolve()
     if not pdf_path.exists():
@@ -145,8 +255,15 @@ def main() -> int:
         server_url=args.server_url,
     )
 
-    text_md, text_html = _write_outputs(outdir, result.markdown_text)
+    elements = middle_json_to_elements(result.middle_json, img_bucket_path="images")
+    elements_json_path = _write_elements_json(outdir, None, elements)
+    text_md, text_html = _write_outputs(
+        outdir,
+        elements_to_markdown(elements, mode="rag"),
+        html_markdown_text=elements_to_markdown(elements, mode="html"),
+    )
 
+    logger.info("Wrote elements: %s", elements_json_path)
     logger.info("Wrote markdown: %s", text_md)
     if text_html is not None:
         logger.info("Wrote html: %s", text_html)

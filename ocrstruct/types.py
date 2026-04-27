@@ -88,7 +88,7 @@ class Element(BaseModel):
                 # text = html_tables_to_markdown(self.text)
                 text = self.text
                 if self.image_path:
-                    return f"{text} (テーブル画像: ![]({self.image_path}))"
+                    return f'{text} ([テーブル画像]({self.image_path}))'
                 else:
                     return text
             case "chart":
