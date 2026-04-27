@@ -25,7 +25,15 @@ def _convert_markdown_to_html_if_pandoc_exists(text_md: Path) -> Path | None:
     text_html = text_md.with_name("text.html")
     try:
         subprocess.run(
-            [pandoc, str(text_md), "-o", str(text_html)],
+            [
+                pandoc,
+                "--from=markdown+tex_math_dollars",
+                "--mathjax",
+                "--standalone",
+                str(text_md),
+                "-o",
+                str(text_html),
+            ],
             check=True,
         )
     except subprocess.CalledProcessError as e:
