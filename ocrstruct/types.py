@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from mocrdown.table import html_tables_to_markdown
+from ocrstruct.table import html_tables_to_markdown
 
 
 class BBox(BaseModel):
@@ -20,6 +20,15 @@ class BBox(BaseModel):
 class Location(BaseModel):
     bbox: BBox
     page_idx: int
+
+
+class LinkRegion(BaseModel):
+    page_idx: int
+    bbox: BBox
+    target_kind: Literal["external", "internal", "unknown"]
+    uri: str | None = None
+    dest_page_idx: int | None = None
+    dest_raw: str | None = None
 
 
 class Element(BaseModel):

@@ -6,7 +6,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from mocrdown.pdf import convert_pdf_to_middle_and_markdown
+from ocrstruct.pdf import convert_pdf_to_middle_and_markdown
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def _convert_markdown_to_html_if_pandoc_exists(text_md: Path) -> Path | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        prog="mocrdown",
+        prog="ocrstruct",
         description="Convert PDF to markdown + images using MinerU.",
     )
     parser.add_argument("pdf", help="input PDF path")

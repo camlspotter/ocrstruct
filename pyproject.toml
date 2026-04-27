@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mocrdown"
+name = "ocrstruct"
 version = "0.1.0"
 description = "PDF to structured elements/markdown converter built on MinerU"
 readme = "README.md"
@@ -25,11 +25,11 @@ dev = [
 ]
 
 [project.scripts]
-mocrdown = "mocrdown.cli:main"
+ocrstruct = "ocrstruct.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["mocrdown"]
+packages = ["ocrstruct"]
 
 [tool.pyright]
-include = ["mocrdown", "tests"]
+include = ["ocrstruct", "tests"]
 exclude = ["**/__pycache__"]

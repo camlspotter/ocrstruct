@@ -3,7 +3,7 @@ import logging
 import re
 import unicodedata
 
-from mocrdown.types import BBox, Element, Location
+from ocrstruct.types import BBox, Element, Location
 
 
 logger = logging.getLogger(__name__)

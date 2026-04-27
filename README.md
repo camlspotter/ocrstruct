@@ -1,6 +1,6 @@
-# mocrdown
+# ocrstruct
 
-`mocrdown` is a Python library for converting PDF files into:
+`ocrstruct` is a Python library for converting PDF files into:
 
 - markdown text (via MinerU)
 - structured elements (text/title/image/table/code/math with bbox/page metadata)
@@ -10,7 +10,7 @@
 ### From Git
 
 ```bash
-pip install "git+https://github.com/<your-org>/mocrdown.git@v0.1.0"
+pip install "git+https://github.com/<your-org>/ocrstruct.git@v0.1.0"
 ```
 
 ### Editable (local development)
@@ -22,11 +22,11 @@ pip install -e .[dev]
 ## Quick Start
 
 ```python
-from mocrdown import convert_pdf_to_elements
+from ocrstruct import convert_pdf_to_elements
 
 elements = convert_pdf_to_elements(
     "/path/to/file.pdf",
-    tmpdir="/tmp/mocrdown-work",
+    tmpdir="/tmp/ocrstruct-work",
 )
 
 for e in elements[:5]:
@@ -35,7 +35,7 @@ for e in elements[:5]:
 
 ## API
 
-Public API (from `mocrdown.__init__`):
+Public API (from `ocrstruct.__init__`):
 
 - `convert_pdf_to_elements(pdf_path, *, tmpdir, img_bucket_path="images", backend=None, method=None, lang=None, server_url=None)`
 - `Element`, `Location`, `BBox`
@@ -52,7 +52,7 @@ Used by MinerU backend selection:
 ## Repository Layout
 
 ```text
-mocrdown/
+ocrstruct/
   __init__.py
   pdf.py
   middle_to_elements.py

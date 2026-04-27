@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 set -euo pipefail
-uv run python -m mocrdown.cli "$@"
+uv run python -m ocrstruct.cli "$@"
