@@ -27,6 +27,7 @@ from ocrstruct import convert_pdf_to_elements
 elements = convert_pdf_to_elements(
     "/path/to/file.pdf",
     tmpdir="/tmp/ocrstruct-work",
+    seal_enable=False,
 )
 
 for e in elements[:5]:
@@ -43,6 +44,9 @@ If [ocrstruct/style.html](/Users/jun/mocrdown/ocrstruct/style.html) exists, it i
 
 ```bash
 uv run python -m ocrstruct.cli sample.pdf
+
+# Skip seal OCR if your PDFs rarely contain seals/stamps
+uv run python -m ocrstruct.cli --disable-seal sample.pdf
 ```
 
 If `middle.json` already exists, you can skip the expensive OCR step and regenerate `elements.json`, `text.md`, and `text.html` directly:
@@ -92,7 +96,7 @@ th {
 
 Public API (from `ocrstruct.__init__`):
 
-- `convert_pdf_to_elements(pdf_path, *, tmpdir, img_bucket_path="images", backend=None, method=None, lang=None, server_url=None)`
+- `convert_pdf_to_elements(pdf_path, *, tmpdir, img_bucket_path="images", backend=None, method=None, lang=None, server_url=None, seal_enable=True)`
 - `dump_elements_json(elements, path)`
 - `load_elements_json(path)`
 - `elements_to_markdown(elements)`
@@ -106,6 +110,8 @@ Used by MinerU backend selection:
 - `MINERU_METHOD` (default: `auto`)
 - `MINERU_LANG` (default: `japan`)
 - `MINERU_SERVER_URL` (optional)
+
+`seal_enable=False` skips MinerU's pipeline seal OCR stage. Layout detection still runs, but the extra OCR pass for detected seal regions is not executed.
 
 ## Repository Layout
 

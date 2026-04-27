@@ -155,6 +155,7 @@ def _validate_from_middle_args(args: argparse.Namespace) -> None:
         "--method": args.method,
         "--lang": args.lang,
         "--server-url": args.server_url,
+        "--disable-seal": args.disable_seal if args.disable_seal else None,
     }
     used = [name for name, value in ignored_args.items() if value is not None]
     if used:
@@ -168,6 +169,7 @@ def _validate_from_elements_args(args: argparse.Namespace) -> None:
         "--lang": args.lang,
         "--server-url": args.server_url,
         "--from-middle": args.from_middle,
+        "--disable-seal": args.disable_seal if args.disable_seal else None,
     }
     used = [name for name, value in ignored_args.items() if value is not None]
     if used:
@@ -196,6 +198,11 @@ def main() -> int:
     parser.add_argument("--method", help="MINERU_METHOD override")
     parser.add_argument("--lang", help="MINERU_LANG override")
     parser.add_argument("--server-url", help="MINERU_SERVER_URL override")
+    parser.add_argument(
+        "--disable-seal",
+        action="store_true",
+        help="skip MinerU seal OCR prediction when supported",
+    )
     parser.add_argument(
         "--log-level",
         default="INFO",
@@ -273,6 +280,7 @@ def main() -> int:
         method=args.method,
         lang=args.lang,
         server_url=args.server_url,
+        seal_enable=not args.disable_seal,
     )
 
     elements = middle_json_to_elements(result.middle_json, img_bucket_path="images")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
 from typing import NamedTuple
@@ -34,6 +35,37 @@ class MineruMarkdownResult(NamedTuple):
     middle_json: dict
     markdown_text: str | None
     extracted_by: str
+
+
+class _NoopSealOcrModel:
+    def ocr(self, *args: Any, **kwargs: Any) -> list[list]:
+        del args, kwargs
+        return [[]]
+
+
+@contextmanager
+def _maybe_disable_pipeline_seal_ocr(disabled: bool):
+    if not disabled:
+        yield
+        return
+
+    from mineru.backend.pipeline.model_init import AtomModelSingleton
+    from mineru.backend.pipeline.model_list import AtomicModel
+
+    original_get_atom_model = AtomModelSingleton.get_atom_model
+    noop_model = _NoopSealOcrModel()
+
+    def patched_get_atom_model(self, atom_model_name: str, **kwargs: Any):
+        if atom_model_name == AtomicModel.OCR and kwargs.get("lang") == "seal":
+            logger.info("Skipping MinerU seal OCR because seal_enable=False")
+            return noop_model
+        return original_get_atom_model(self, atom_model_name, **kwargs)
+
+    AtomModelSingleton.get_atom_model = patched_get_atom_model
+    try:
+        yield
+    finally:
+        AtomModelSingleton.get_atom_model = original_get_atom_model
 
 
 def middle_json_to_elements(middle_json: dict, *, img_bucket_path: str = "images") -> list[Element]:
@@ -293,6 +325,7 @@ def convert_pdf_to_middle_and_markdown(
     method: str | None = None,
     lang: str | None = None,
     server_url: str | None = None,
+    seal_enable: bool = True,
 ) -> MineruMarkdownResult:
     backend = backend or os.getenv("MINERU_BACKEND", "pipeline")
     method = method or os.getenv("MINERU_METHOD", "auto")
@@ -326,15 +359,16 @@ def convert_pdf_to_middle_and_markdown(
             if doc_index == 0:
                 middle_json_holder["middle_json"] = pipeline_middle_json
 
-        pipeline_doc_analyze_streaming(
-            [pdf_bytes],
-            [image_writer],
-            [lang],
-            on_doc_ready,
-            parse_method=method,
-            formula_enable=True,
-            table_enable=True,
-        )
+        with _maybe_disable_pipeline_seal_ocr(disabled=not seal_enable):
+            pipeline_doc_analyze_streaming(
+                [pdf_bytes],
+                [image_writer],
+                [lang],
+                on_doc_ready,
+                parse_method=method,
+                formula_enable=True,
+                table_enable=True,
+            )
         middle_json = middle_json_holder["middle_json"]
         md_content = pipeline_union_make(
             middle_json["pdf_info"],
@@ -419,6 +453,7 @@ def convert_pdf_to_elements(
     method: str | None = None,
     lang: str | None = None,
     server_url: str | None = None,
+    seal_enable: bool = True,
 ) -> list[Element]:
     result = convert_pdf_to_middle_and_markdown(
         pdf_path,
@@ -427,5 +462,6 @@ def convert_pdf_to_elements(
         method=method,
         lang=lang,
         server_url=server_url,
+        seal_enable=seal_enable,
     )
     return middle_json_to_elements(result.middle_json, img_bucket_path=img_bucket_path)
