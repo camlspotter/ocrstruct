@@ -33,6 +33,53 @@ for e in elements[:5]:
     print(e.kind, e.text)
 ```
 
+## CLI
+
+`pandoc` is optional. If it is installed, `ocrstruct` also writes `text.html`.
+
+If [ocrstruct/style.html](/Users/jun/mocrdown/ocrstruct/style.html) exists, it is passed to Pandoc with `--include-in-header`.
+
+```bash
+uv run python -m ocrstruct.cli sample.pdf
+```
+
+If `middle.json` already exists, you can skip the expensive OCR step and regenerate `text.md` and `text.html` directly:
+
+```bash
+uv run python -m ocrstruct.cli --from-middle /path/to/middle.json
+```
+
+When `--from-middle` is used, the output directory defaults to the directory containing `middle.json`.
+
+Example `ocrstruct/style.html`:
+
+```html
+<style>
+table {
+  display: table;
+  overflow-x: visible;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead,
+tbody {
+  border: 0;
+}
+
+th,
+td {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+}
+
+th {
+  background: #f8fafc;
+}
+</style>
+```
+
 ## API
 
 Public API (from `ocrstruct.__init__`):

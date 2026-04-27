@@ -22,7 +22,7 @@ from mineru.utils.engine_utils import get_vlm_engine
 from mineru.utils.enum_class import MakeMode
 from pypdf import PdfReader
 
-from ocrstruct.middle_to_elements import to_elements
+from ocrstruct.middle_to_elements import to_elements, to_markdown
 from ocrstruct.types import BBox, Element, LinkRegion
 
 
@@ -37,6 +37,55 @@ class MineruMarkdownResult(NamedTuple):
 
 def middle_json_to_elements(middle_json: dict, *, img_bucket_path: str = "images") -> list[Element]:
     return to_elements(middle_json, img_bucket_path=img_bucket_path)
+
+
+def _md_content_to_text(md_content: Any) -> str | None:
+    if isinstance(md_content, list):
+        return "\n".join(str(x) for x in md_content)
+    if md_content is None:
+        return None
+    return str(md_content)
+
+
+def render_middle_json_to_markdown(
+    middle_json: dict,
+    *,
+    markdown_image_bucket_path: str = "images",
+) -> MineruMarkdownResult:
+    pdf_info = middle_json.get("pdf_info")
+    if not isinstance(pdf_info, list):
+        raise ValueError("middle.json does not have valid 'pdf_info'")
+
+    renderer_attempts: list[tuple[str, Any]] = [
+        ("mineru/pipeline", pipeline_union_make),
+        ("mineru/vlm", vlm_union_make),
+    ]
+    for extracted_by, renderer in renderer_attempts:
+        try:
+            md_content = renderer(
+                pdf_info,
+                MakeMode.MM_MD,
+                markdown_image_bucket_path,
+            )
+            return MineruMarkdownResult(
+                middle_json=middle_json,
+                markdown_text=_md_content_to_text(md_content),
+                extracted_by=extracted_by,
+            )
+        except Exception:
+            logger.debug("Markdown render via %s failed", extracted_by, exc_info=True)
+
+    logger.warning("Falling back to ocrstruct markdown renderer for middle.json")
+    return MineruMarkdownResult(
+        middle_json=middle_json,
+        markdown_text=to_markdown(middle_json, img_bucket_path=markdown_image_bucket_path),
+        extracted_by="ocrstruct/fallback",
+    )
+
+
+def load_middle_json(middle_json_path: str | Path) -> dict:
+    path = Path(middle_json_path)
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _pdf_obj_to_str(value: Any, *, max_depth: int = 4) -> str:
@@ -320,17 +369,9 @@ def convert_pdf_to_middle_and_markdown(
     )
     logger.info(f"MinerU middle_json saved: {middle_path}")
 
-    markdown_text: str | None
-    if isinstance(md_content, list):
-        markdown_text = "\n".join(str(x) for x in md_content)
-    elif md_content is None:
-        markdown_text = None
-    else:
-        markdown_text = str(md_content)
-
     return MineruMarkdownResult(
         middle_json=middle_json,
-        markdown_text=markdown_text,
+        markdown_text=_md_content_to_text(md_content),
         extracted_by=extracted_by,
     )
 
