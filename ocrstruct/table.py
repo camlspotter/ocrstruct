@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import base64
 import re
 from typing import Literal
 from bs4 import BeautifulSoup, Tag
 
 
 _TABLE_RE = re.compile(r"<table\b[^>]*>.*?</table>", re.IGNORECASE | re.DOTALL)
+_EQ_RE = re.compile(r"<eq>(.*?)</eq>", re.IGNORECASE | re.DOTALL)
+_EQ_TOKEN_RE = re.compile(r"CODEXEQ\[([A-Za-z0-9_\-=]+)\]")
 type MultiCellMode = Literal["blank", "repeat", "keep_html"]
 
 
@@ -144,3 +147,38 @@ def html_tables_to_markdown(text: str, multicell_mode: MultiCellMode = "repeat")
         return "\n" + md + "\n"
 
     return _TABLE_RE.sub(repl, text)
+
+
+def html_table_eq_to_mathjax(text: str) -> str:
+    if "<eq>" not in text.lower():
+        return text
+
+    def repl(m: re.Match[str]) -> str:
+        expr = m.group(1).strip()
+        return f'<span class="math inline">\\({expr}\\)</span>'
+
+    return _EQ_RE.sub(repl, text)
+
+
+def encode_html_table_eq_tokens(text: str) -> str:
+    if "<eq>" not in text.lower():
+        return text
+
+    def repl(m: re.Match[str]) -> str:
+        expr = m.group(1).strip()
+        encoded = base64.urlsafe_b64encode(expr.encode("utf-8")).decode("ascii")
+        return f"CODEXEQ[{encoded}]"
+
+    return _EQ_RE.sub(repl, text)
+
+
+def decode_html_table_eq_tokens(text: str) -> str:
+    if "CODEXEQ[" not in text:
+        return text
+
+    def repl(m: re.Match[str]) -> str:
+        encoded = m.group(1)
+        expr = base64.urlsafe_b64decode(encoded.encode("ascii")).decode("utf-8")
+        return f'<span class="math inline">\\({expr}\\)</span>'
+
+    return _EQ_TOKEN_RE.sub(repl, text)

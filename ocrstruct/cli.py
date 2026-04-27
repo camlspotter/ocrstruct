@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 import shutil
 import subprocess
 import tempfile
@@ -15,9 +16,11 @@ from ocrstruct.pdf import (
     load_middle_json,
     middle_json_to_elements,
 )
+from ocrstruct.table import decode_html_table_eq_tokens
 
 
 logger = logging.getLogger(__name__)
+_EQ_TAG_RE = re.compile(r"<eq>(.*?)</eq>", re.IGNORECASE | re.DOTALL)
 
 
 def _default_output_dir(pdf_path: Path) -> Path:
@@ -64,6 +67,7 @@ def _convert_markdown_to_html_if_pandoc_exists(text_md: Path) -> Path | None:
     except subprocess.CalledProcessError as e:
         logger.warning("pandoc failed (exit=%s); skip HTML output", e.returncode)
         return None
+    _postprocess_html_mathjax_eq(text_html)
     return text_html
 
 
@@ -103,7 +107,23 @@ def _convert_markdown_string_to_html_if_pandoc_exists(markdown_text: str, text_h
         return None
     finally:
         tmp_md.unlink(missing_ok=True)
+    _postprocess_html_mathjax_eq(text_html)
     return text_html
+
+
+def _postprocess_html_mathjax_eq(text_html: Path) -> None:
+    html = text_html.read_text(encoding="utf-8")
+    if "<eq>" not in html.lower() and "CODEXEQ[" not in html:
+        return
+
+    def repl(m: re.Match[str]) -> str:
+        expr = m.group(1).strip()
+        return f'<span class="math inline">\\({expr}\\)</span>'
+
+    updated = _EQ_TAG_RE.sub(repl, html)
+    updated = decode_html_table_eq_tokens(updated)
+    if updated != html:
+        text_html.write_text(updated, encoding="utf-8")
 
 
 def _write_outputs(

@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from ocrstruct.table import html_tables_to_markdown
+from ocrstruct.table import encode_html_table_eq_tokens, html_tables_to_markdown
 
 
 class BBox(BaseModel):
@@ -76,6 +76,8 @@ class Element(BaseModel):
                 return self.text
             case "math":
                 if self.text:
+                    if self.subkind == "inline":
+                        return f"${self.text}$"
                     return f"$$\n{self.text}\n$$"
                 alt = self.alt or '数式'
                 desc = f'(数式画像説明: {self.description})' if self.description else ''
@@ -85,10 +87,9 @@ class Element(BaseModel):
                 return f"```{self.subkind or ''}\n{self.text}```"
             case "table":
                 assert self.text is not None
-                # text = html_tables_to_markdown(self.text)
-                text = self.text
+                text = encode_html_table_eq_tokens(self.text)
                 if self.image_path:
-                    return f'{text} ([テーブル画像]({self.image_path}))'
+                    return f'{text}\n<div class="table-image-link-row">(<a href="{self.image_path}" class="table-image-link">テーブル画像</a>)</div>'
                 else:
                     return text
             case "chart":
@@ -122,6 +123,8 @@ class Element(BaseModel):
                 return self.text
             case "math":
                 if self.text:
+                    if self.subkind == "inline":
+                        return f"${self.text}$"
                     return f"$$\n{self.text}\n$$"
                 alt = self.alt or '数式'
                 desc = f'(数式画像説明: {self.description})' if self.description else ''
@@ -186,6 +189,8 @@ class Element(BaseModel):
                 return self.text
             case "math":
                 if self.text:
+                    if self.subkind == "inline":
+                        return f"${self.text}$"
                     return f"$$\n{self.text}\n$$"
                 if text := self.embed_alt_and_description():
                     return f'数式({text})'

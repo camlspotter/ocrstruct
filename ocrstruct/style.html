@@ -2,6 +2,13 @@
     body {
       max-width: 42em;
     }
+    .table-image-link-row {
+      margin: 0.25em 0 0.75em;
+      text-align: right;
+    }
+    .table-image-link {
+      white-space: nowrap;
+    }
     table {
       margin: 1em 0;
       border-collapse: collapse;
@@ -34,4 +41,87 @@
     tbody tr:last-child td {
       border-bottom: 0;
     }
+    dialog.table-image-modal {
+      border: 0;
+      border-radius: 12px;
+      padding: 0;
+      max-width: min(92vw, 1200px);
+      max-height: 92vh;
+      background: transparent;
+    }
+    dialog.table-image-modal::backdrop {
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .table-image-modal__surface {
+      position: relative;
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .table-image-modal__close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.08);
+      width: 32px;
+      height: 32px;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .table-image-modal__image {
+      display: block;
+      max-width: min(88vw, 1160px);
+      max-height: calc(92vh - 32px);
+      width: auto;
+      height: auto;
+    }
 </style>
+<dialog class="table-image-modal" aria-label="テーブル画像">
+  <div class="table-image-modal__surface">
+    <button class="table-image-modal__close" type="button" aria-label="閉じる">×</button>
+    <img class="table-image-modal__image" alt="テーブル画像" />
+  </div>
+</dialog>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const modal = document.querySelector(".table-image-modal");
+    if (!(modal instanceof HTMLDialogElement)) {
+      return;
+    }
+    const modalImage = modal.querySelector(".table-image-modal__image");
+    const closeButton = modal.querySelector(".table-image-modal__close");
+    if (!(modalImage instanceof HTMLImageElement) || !(closeButton instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const closeModal = () => {
+      modal.close();
+      modalImage.removeAttribute("src");
+    };
+
+    document.querySelectorAll(".table-image-link").forEach((link) => {
+      if (!(link instanceof HTMLAnchorElement)) {
+        return;
+      }
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        modalImage.src = link.href;
+        modal.showModal();
+      });
+    });
+
+    closeButton.addEventListener("click", closeModal);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+    modal.addEventListener("close", () => {
+      modalImage.removeAttribute("src");
+    });
+  });
+</script>

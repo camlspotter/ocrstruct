@@ -102,38 +102,53 @@ def _extract_text_lines_with_bbox(block: dict, *, page_idx: int) -> list[Element
         return []
 
     block_loc = _safe_loc(block, page_idx)
-    extracted_line_texts = _extract_texts_from_lines(lines)
     out: list[Element] = []
-    for idx, line in enumerate(lines):
+    for line in lines:
         if not isinstance(line, dict):
             continue
         spans = line.get("spans")
         if not isinstance(spans, list):
             continue
         line_loc = _safe_loc(line, page_idx) or block_loc
-        line_text: list[str]
-        if idx < len(extracted_line_texts):
-            line_text = [extracted_line_texts[idx]]
-        else:
-            line_text = []
-        line_best_loc: Location | None = None
+        text_parts: list[str] = []
+        text_loc: Location | None = None
+
+        def flush_text() -> None:
+            nonlocal text_parts, text_loc
+            if not text_parts:
+                return
+            out.append(Element(
+                kind='text',
+                text="".join(text_parts),
+                loc=text_loc or line_loc,
+            ))
+            text_parts = []
+            text_loc = None
+
         for span in spans:
             if not isinstance(span, dict):
                 continue
             content = span.get("content")
-            if isinstance(content, str) and content:
-                if bbox := _safe_bbox(span):
-                    span_loc = Location(bbox= bbox, page_idx= page_idx)
-                else:
-                    span_loc = line_loc
-                if line_best_loc is None and span_loc is not None:
-                    line_best_loc = span_loc
-        if line_text:
-            out.append(Element(
-                kind='text',
-                text="".join(line_text),
-                loc= line_best_loc or line_loc,
-            ))
+            if not isinstance(content, str) or not content:
+                continue
+            if bbox := _safe_bbox(span):
+                span_loc = Location(bbox=bbox, page_idx=page_idx)
+            else:
+                span_loc = line_loc
+            span_type = span.get("type")
+            if span_type == "inline_equation":
+                flush_text()
+                out.append(Element(
+                    kind='math',
+                    subkind='inline',
+                    text=content,
+                    loc=span_loc,
+                ))
+                continue
+            if text_loc is None:
+                text_loc = span_loc
+            text_parts.append(content)
+        flush_text()
     return out
 
 
