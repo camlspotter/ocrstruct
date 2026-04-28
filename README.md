@@ -40,6 +40,8 @@ for e in elements[:5]:
 Given a PDF, `ocrstruct` writes `middle.json`, `elements.json`, `text.md`, and `text.html`.
 `text.md` is the RAG-oriented normalized markdown, while `text.html` is rendered from a temporary markdown variant that keeps HTML tables intact.
 
+The same HTML rendering path is also available from the library API via `elements_to_html(elements)`.
+
 If [ocrstruct/style.html](/Users/jun/mocrdown/ocrstruct/style.html) exists, it is passed to Pandoc with `--include-in-header`.
 
 ```bash
@@ -97,6 +99,7 @@ th {
 Public API (from `ocrstruct.__init__`):
 
 - `convert_pdf_to_elements(pdf_path, *, tmpdir, backend=None, method=None, lang=None, server_url=None, seal_enable=True)`
+- `elements_to_html(elements)`
 - `dump_elements_json(elements, path)`
 - `load_elements_json(path)`
 - `elements_to_markdown(elements)`

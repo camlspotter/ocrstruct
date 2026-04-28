@@ -1,3 +1,4 @@
+from ocrstruct.html import elements_to_html, markdown_to_html
 from pathlib import Path
 
 from ocrstruct.middle_to_elements import middle_to_elements
@@ -12,7 +13,9 @@ __all__ = [
     "Location",
     "convert_pdf_to_middle",
     "convert_pdf_to_elements",
+    "elements_to_html",
     "elements_to_markdown",
     "extract_pdf_link_regions",
+    "markdown_to_html",
     "middle_to_elements",
 ]

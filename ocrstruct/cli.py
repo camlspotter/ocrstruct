@@ -2,22 +2,17 @@ from __future__ import annotations
 
 import argparse
 import logging
-import re
-import shutil
-import subprocess
-import tempfile
 from pathlib import Path
 import os
 
+from ocrstruct.html import elements_to_html
 from ocrstruct.pdf import convert_pdf_to_elements
 from ocrstruct.types import elements_to_markdown, Element
 from ocrstruct.middle_to_elements import middle_to_elements
-from ocrstruct.table import decode_html_table_eq_tokens
 from ocrstruct.utils import load_json, save_json
 
 
 logger = logging.getLogger(__name__)
-_EQ_TAG_RE = re.compile(r"<eq>(.*?)</eq>", re.IGNORECASE | re.DOTALL)
 
 
 def _default_output_dir(pdf_path: Path) -> Path:
@@ -32,112 +27,21 @@ def _default_elements_output_dir(elements_json_path: Path) -> Path:
     return elements_json_path.parent
 
 
-def _default_html_header() -> Path | None:
-    header = Path(__file__).with_name("style.html")
-    if header.exists():
-        return header
-    return None
-
-
-def _convert_markdown_to_html_if_pandoc_exists(text_md: Path) -> Path | None:
-    pandoc = shutil.which("pandoc")
-    if pandoc is None:
-        logger.info("pandoc not found; skip HTML conversion")
-        return None
-
-    text_html = text_md.with_name("text.html")
-    command = [
-        pandoc,
-        "--from=markdown+tex_math_dollars",
-        "--mathjax",
-        "--standalone",
-        str(text_md),
-        "-o",
-        str(text_html),
-    ]
-    header_include = _default_html_header()
-    if header_include is not None:
-        command.extend(["--include-in-header", str(header_include)])
-
-    try:
-        subprocess.run(command, check=True)
-    except subprocess.CalledProcessError as e:
-        logger.warning("pandoc failed (exit=%s); skip HTML output", e.returncode)
-        return None
-    _postprocess_html_mathjax_eq(text_html)
-    return text_html
-
-
-def _convert_markdown_string_to_html_if_pandoc_exists(markdown_text: str, text_html: Path) -> Path | None:
-    pandoc = shutil.which("pandoc")
-    if pandoc is None:
-        logger.info("pandoc not found; skip HTML conversion")
-        return None
-
-    with tempfile.NamedTemporaryFile(
-        mode="w",
-        encoding="utf-8",
-        suffix=".md",
-        prefix="ocrstruct-html-render-",
-        delete=False,
-    ) as tmp:
-        tmp.write(markdown_text)
-        tmp_md = Path(tmp.name)
-
-    command = [
-        pandoc,
-        "--from=markdown+tex_math_dollars",
-        "--mathjax",
-        "--standalone",
-        str(tmp_md),
-        "-o",
-        str(text_html),
-    ]
-    header_include = _default_html_header()
-    if header_include is not None:
-        command.extend(["--include-in-header", str(header_include)])
-
-    try:
-        subprocess.run(command, check=True)
-    except subprocess.CalledProcessError as e:
-        logger.warning("pandoc failed (exit=%s); skip HTML output", e.returncode)
-        return None
-    finally:
-        tmp_md.unlink(missing_ok=True)
-    _postprocess_html_mathjax_eq(text_html)
-    return text_html
-
-
-def _postprocess_html_mathjax_eq(text_html: Path) -> None:
-    html = text_html.read_text(encoding="utf-8")
-    if "<eq>" not in html.lower() and "CODEXEQ[" not in html:
-        return
-
-    def repl(m: re.Match[str]) -> str:
-        expr = m.group(1).strip()
-        return f'<span class="math inline">\\({expr}\\)</span>'
-
-    updated = _EQ_TAG_RE.sub(repl, html)
-    updated = decode_html_table_eq_tokens(updated)
-    if updated != html:
-        text_html.write_text(updated, encoding="utf-8")
-
-
 def _write_outputs(
     outdir: Path,
-    markdown_text: str | None,
+    markdown_text: str,
     *,
-    html_markdown_text: str | None = None,
-) -> tuple[Path, Path | None]:
+    elements: list[Element],
+) -> tuple[Path, Path|None]:
     text_md = outdir / "text.md"
     text_md.write_text(markdown_text or "", encoding="utf-8")
-    if html_markdown_text is None:
-        text_html = _convert_markdown_to_html_if_pandoc_exists(text_md)
-    else:
-        text_html = _convert_markdown_string_to_html_if_pandoc_exists(
-            html_markdown_text,
-            outdir / "text.html",
-        )
+    html = elements_to_html(elements)
+    if html is None:
+        logger.info("pandoc not found or failed; skip HTML conversion")
+        return text_md, None
+
+    text_html = outdir / "text.html"
+    text_html.write_text(html, encoding="utf-8")
     return text_md, text_html
 
 
@@ -235,7 +139,7 @@ def main() -> int:
     text_md, text_html = _write_outputs(
         outdir,
         elements_to_markdown(elements, llm=True),
-        html_markdown_text=elements_to_markdown(elements, llm=False),
+        elements=elements,
     )
 
     logger.info("Wrote elements: %s", elements_json_path)
