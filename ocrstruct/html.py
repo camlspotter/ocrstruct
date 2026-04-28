@@ -5,9 +5,11 @@ import re
 import shutil
 import subprocess
 import tempfile
+from typing import Any
 
+from ocrstruct.middle import Middle, Result
+from ocrstruct.middle_to_markdown import middle_to_markdown, result_to_markdown
 from ocrstruct.table import decode_html_table_eq_tokens
-from ocrstruct.types import Element, elements_to_markdown
 
 
 _EQ_TAG_RE = re.compile(r"<eq>(.*?)</eq>", re.IGNORECASE | re.DOTALL)
@@ -85,11 +87,35 @@ def markdown_to_html(
     return _postprocess_html_mathjax_eq(html)
 
 
-def elements_to_html(
-    elements: list[Element],
+def middle_to_html(
+    middle: Middle,
     *,
     header_path: str | Path | None = None,
 ) -> str | None:
+    return markdown_to_html(
+        middle_to_markdown(middle),
+        header_path=header_path,
+    )
+
+
+def result_to_html(
+    result: Result,
+    *,
+    header_path: str | Path | None = None,
+) -> str | None:
+    return markdown_to_html(
+        result_to_markdown(result),
+        header_path=header_path,
+    )
+
+
+def elements_to_html(
+    elements: list[Any],
+    *,
+    header_path: str | Path | None = None,
+) -> str | None:
+    from ocrstruct.types import elements_to_markdown
+
     return markdown_to_html(
         elements_to_markdown(elements, llm=False),
         header_path=header_path,

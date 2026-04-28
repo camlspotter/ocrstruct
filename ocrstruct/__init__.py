@@ -1,21 +1,43 @@
-from ocrstruct.html import elements_to_html, markdown_to_html
-from pathlib import Path
-
-from ocrstruct.middle_to_elements import middle_to_elements
-from ocrstruct.pdf import convert_pdf_to_middle, extract_pdf_link_regions, convert_pdf_to_elements
-from ocrstruct.types import BBox, Element, LinkRegion, Location, elements_to_markdown
+from ocrstruct.html import markdown_to_html, middle_to_html, result_to_html
+from ocrstruct.middle import (
+    BBox,
+    Block,
+    BlockType,
+    Content,
+    Line,
+    Middle,
+    Model,
+    PageInfo,
+    PageSize,
+    Result,
+    Span,
+    SpanType,
+    merge_discarded_blocks,
+)
+from ocrstruct.middle_to_markdown import middle_to_markdown, result_to_markdown
+from ocrstruct.pdf import LinkRegion, convert_pdf_to_middle, extract_pdf_link_regions
 
 
 __all__ = [
     "BBox",
-    "Element",
+    "Block",
+    "BlockType",
+    "Content",
+    "Line",
     "LinkRegion",
-    "Location",
+    "Middle",
+    "Model",
+    "PageInfo",
+    "PageSize",
+    "Result",
+    "Span",
+    "SpanType",
     "convert_pdf_to_middle",
-    "convert_pdf_to_elements",
-    "elements_to_html",
-    "elements_to_markdown",
     "extract_pdf_link_regions",
     "markdown_to_html",
-    "middle_to_elements",
+    "merge_discarded_blocks",
+    "middle_to_html",
+    "middle_to_markdown",
+    "result_to_html",
+    "result_to_markdown",
 ]
