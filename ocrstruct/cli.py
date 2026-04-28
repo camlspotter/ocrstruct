@@ -3,13 +3,10 @@ from __future__ import annotations
 import argparse
 import logging
 from pathlib import Path
-import os
 
 from ocrstruct.html import elements_to_html
 from ocrstruct.pdf import convert_pdf_to_elements
-from ocrstruct.types import elements_to_markdown, Element
-from ocrstruct.middle_to_elements import middle_to_elements
-from ocrstruct.utils import load_json, save_json
+from ocrstruct.types import elements_to_markdown
 
 
 logger = logging.getLogger(__name__)
@@ -19,64 +16,16 @@ def _default_output_dir(pdf_path: Path) -> Path:
     return pdf_path.with_suffix("")
 
 
-def _default_middle_output_dir(middle_json_path: Path) -> Path:
-    return middle_json_path.parent
-
-
-def _default_elements_output_dir(elements_json_path: Path) -> Path:
-    return elements_json_path.parent
-
-
-def _write_outputs(
-    outdir: Path,
-    markdown_text: str,
-    *,
-    elements: list[Element],
-) -> tuple[Path, Path|None]:
+def _write_outputs(outdir: Path, markdown_text: str, html_text: str | None) -> tuple[Path, Path | None]:
     text_md = outdir / "text.md"
-    text_md.write_text(markdown_text or "", encoding="utf-8")
-    html = elements_to_html(elements)
-    if html is None:
+    text_md.write_text(markdown_text, encoding="utf-8")
+    if html_text is None:
         logger.info("pandoc not found or failed; skip HTML conversion")
         return text_md, None
 
     text_html = outdir / "text.html"
-    text_html.write_text(html, encoding="utf-8")
+    text_html.write_text(html_text, encoding="utf-8")
     return text_md, text_html
-
-
-def _write_elements_json(outdir: Path, elements_json_path: Path | None, elements: list[Element]) -> None:
-    target = elements_json_path or (outdir / "elements.json")
-    save_json(list[Element], target, elements)
-
-
-def _validate_from_middle_args(args: argparse.Namespace) -> None:
-    ignored_args = {
-        "--backend": args.backend,
-        "--method": args.method,
-        "--lang": args.lang,
-        "--server-url": args.server_url,
-        "--disable-seal": args.disable_seal if args.disable_seal else None,
-        "--lazy": args.lazy if args.lazy else None,
-    }
-    used = [name for name, value in ignored_args.items() if value is not None]
-    if used:
-        raise ValueError(f"{', '.join(used)} cannot be used with --from-middle")
-
-
-def _validate_from_elements_args(args: argparse.Namespace) -> None:
-    ignored_args = {
-        "--backend": args.backend,
-        "--method": args.method,
-        "--lang": args.lang,
-        "--server-url": args.server_url,
-        "--from-middle": args.from_middle,
-        "--disable-seal": args.disable_seal if args.disable_seal else None,
-        "--lazy": args.lazy if args.lazy else None,
-    }
-    used = [name for name, value in ignored_args.items() if value is not None]
-    if used:
-        raise ValueError(f"{', '.join(used)} cannot be used with --from-elements")
 
 
 def main() -> int:
@@ -136,10 +85,12 @@ def main() -> int:
         lazy=args.lazy,
     )
 
+    markdown_text = elements_to_markdown(elements, llm=True)
+    html_text = elements_to_html(elements)
     text_md, text_html = _write_outputs(
         outdir,
-        elements_to_markdown(elements, llm=True),
-        elements=elements,
+        markdown_text,
+        html_text,
     )
 
     logger.info("Wrote elements: %s", elements_json_path)
