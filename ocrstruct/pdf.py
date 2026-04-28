@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
+import multiprocessing as mp
 import os
+import traceback
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
@@ -239,7 +241,9 @@ def convert_pdf_to_middle(
     lang: str | None = None,
     server_url: str | None = None,
     seal_enable: bool = True,
+    formula_enable: bool = True,
     lazy: bool = False,
+    fork: bool | None = None,
 ) -> Result:
     middle_path = Path(outdir) / "middle.json"
 
@@ -247,7 +251,50 @@ def convert_pdf_to_middle(
         if res := Result.load_json(middle_path):
             return res
 
+    if fork is None:
+        fork = os.getenv("OCRSTRUCT_FORK_PDF_TO_MIDDLE", "").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
 
+    if fork:
+        return _convert_pdf_to_middle_forked(
+            pdf_path,
+            outdir=outdir,
+            backend=backend,
+            method=method,
+            lang=lang,
+            server_url=server_url,
+            seal_enable=seal_enable,
+            formula_enable=formula_enable,
+            lazy=lazy,
+        )
+
+    return _convert_pdf_to_middle_impl(
+        pdf_path,
+        outdir=outdir,
+        backend=backend,
+        method=method,
+        lang=lang,
+        server_url=server_url,
+        seal_enable=seal_enable,
+        formula_enable=formula_enable,
+    )
+
+def _convert_pdf_to_middle_impl(
+    pdf_path: str,
+    *,
+    outdir: str,
+    backend: str | None = None,
+    method: str | None = None,
+    lang: str | None = None,
+    server_url: str | None = None,
+    seal_enable: bool = True,
+    formula_enable: bool = True,
+) -> Result:
+    middle_path = Path(outdir) / "middle.json"
     backend = backend or os.getenv("MINERU_BACKEND", "pipeline")
     method = method or os.getenv("MINERU_METHOD", "auto")
     lang = lang or os.getenv("MINERU_LANG", "japan")
@@ -282,7 +329,7 @@ def convert_pdf_to_middle(
                 [lang],
                 on_doc_ready,
                 parse_method=method,
-                formula_enable=True,
+                formula_enable=formula_enable,
                 table_enable=True,
             )
         middle_json = middle_json_holder["middle_json"]
@@ -313,7 +360,7 @@ def convert_pdf_to_middle(
             backend=backend_name,
             parse_method=parse_method,
             language=lang,
-            inline_formula_enable=True,
+            inline_formula_enable=formula_enable,
             server_url=server_url,
         )
         extracted_by = f"mineru/hybrid:{backend_name}"
@@ -329,6 +376,85 @@ def convert_pdf_to_middle(
     logger.info(f"MinerU middle_json saved: {middle_path}")
     return res
 
+
+def _convert_pdf_to_middle_child(
+    error_queue: Any,
+    pdf_path: str,
+    *,
+    outdir: str,
+    backend: str | None,
+    method: str | None,
+    lang: str | None,
+    server_url: str | None,
+    seal_enable: bool,
+    formula_enable: bool,
+) -> None:
+    try:
+        _convert_pdf_to_middle_impl(
+            pdf_path,
+            outdir=outdir,
+            backend=backend,
+            method=method,
+            lang=lang,
+            server_url=server_url,
+            seal_enable=seal_enable,
+            formula_enable=formula_enable,
+        )
+    except BaseException:
+        error_queue.put(traceback.format_exc())
+        raise
+
+
+def _convert_pdf_to_middle_forked(
+    pdf_path: str,
+    *,
+    outdir: str,
+    backend: str | None,
+    method: str | None,
+    lang: str | None,
+    server_url: str | None,
+    seal_enable: bool,
+    formula_enable: bool,
+    lazy: bool,
+) -> Result:
+    middle_path = Path(outdir) / "middle.json"
+    if lazy and os.path.exists(middle_path):
+        if res := Result.load_json(middle_path):
+            return res
+
+    ctx = mp.get_context("spawn")
+    error_queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_convert_pdf_to_middle_child,
+        args=(error_queue, pdf_path),
+        kwargs={
+            "outdir": outdir,
+            "backend": backend,
+            "method": method,
+            "lang": lang,
+            "server_url": server_url,
+            "seal_enable": seal_enable,
+            "formula_enable": formula_enable,
+        },
+    )
+    proc.start()
+    proc.join()
+
+    error_text: str | None = None
+    if not error_queue.empty():
+        error_text = error_queue.get()
+
+    if proc.exitcode != 0:
+        if error_text is not None:
+            raise RuntimeError(
+                f"forked convert_pdf_to_middle failed for {pdf_path}\n{error_text}"
+            )
+        raise RuntimeError(
+            f"forked convert_pdf_to_middle failed for {pdf_path} with exit code {proc.exitcode}"
+        )
+
+    return Result.load_json(middle_path)
+
 def convert_pdf_to_elements(
     pdf_path: str,
     *,
@@ -338,14 +464,16 @@ def convert_pdf_to_elements(
     lang: str | None = None,
     server_url: str | None = None,
     seal_enable: bool = True,
+    formula_enable: bool = True,
     lazy: bool = False,
+    fork: bool | None = None,
 ) -> list[Element]:
     elements_json_path = Path(outdir) / 'elements.json'
     elements : list[Element] | None = None
     if lazy and os.path.exists(elements_json_path):
         if elements := load_json(list[Element], elements_json_path):
             return elements
-    result = convert_pdf_to_middle(pdf_path, outdir= outdir, backend= backend, method= method, lang= lang, server_url= server_url, seal_enable= seal_enable, lazy= lazy)
+    result = convert_pdf_to_middle(pdf_path, outdir= outdir, backend= backend, method= method, lang= lang, server_url= server_url, seal_enable= seal_enable, formula_enable=formula_enable, lazy= lazy, fork=fork)
     elements = middle_to_elements(result.middle_json)
     assert elements
     save_json(list[Element], elements_json_path, elements)

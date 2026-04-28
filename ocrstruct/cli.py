@@ -28,44 +28,7 @@ def _write_outputs(outdir: Path, markdown_text: str, html_text: str | None) -> t
     return text_md, text_html
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        prog="ocrstruct",
-        description="Convert PDF to markdown + images using MinerU.",
-    )
-    parser.add_argument("pdf", nargs="?", help="input PDF path")
-    parser.add_argument(
-        "--outdir",
-        help="output directory (default: <pdf-basename-without-ext>/ or directory containing middle.json/elements.json)",
-    )
-    parser.add_argument("--backend", help="MINERU_BACKEND override")
-    parser.add_argument("--method", help="MINERU_METHOD override")
-    parser.add_argument("--lang", help="MINERU_LANG override")
-    parser.add_argument("--server-url", help="MINERU_SERVER_URL override")
-    parser.add_argument(
-        "--disable-seal",
-        action="store_true",
-        help="skip MinerU seal OCR prediction when supported",
-    )
-    parser.add_argument(
-        "--lazy",
-        action="store_true",
-        help="reuse existing middle.json in the output directory when available",
-    )
-    parser.add_argument(
-        "--log-level",
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="log level",
-    )
-    args = parser.parse_args()
-
-    logging.basicConfig(level=getattr(logging, args.log_level))
-
-    if not args.pdf:
-        raise ValueError("pdf is required")
-
-    pdf_path = Path(args.pdf)
+def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> Path:
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
@@ -73,7 +36,7 @@ def main() -> int:
     outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "images").mkdir(parents=True, exist_ok=True)
 
-    elements_json_path = outdir / 'elements.json'
+    elements_json_path = outdir / "elements.json"
     elements = convert_pdf_to_elements(
         str(pdf_path),
         outdir=str(outdir),
@@ -82,7 +45,9 @@ def main() -> int:
         lang=args.lang,
         server_url=args.server_url,
         seal_enable=not args.disable_seal,
+        formula_enable=not args.disable_formula,
         lazy=args.lazy,
+        fork=args.fork_pdf_to_middle,
     )
 
     markdown_text = elements_to_markdown(elements, llm=True)
@@ -99,7 +64,62 @@ def main() -> int:
         logger.info("Wrote html: %s", text_html)
     logger.info("Images dir: %s", outdir / "images")
     logger.info("Middle JSON: %s", outdir / "middle.json")
-    print(text_md)
+    return text_md
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        prog="ocrstruct",
+        description="Convert PDF to markdown + images using MinerU.",
+    )
+    parser.add_argument("pdf", nargs="+", help="input PDF path(s)")
+    parser.add_argument(
+        "--outdir",
+        help="output directory (default: <pdf-basename-without-ext>/ or directory containing middle.json/elements.json)",
+    )
+    parser.add_argument("--backend", help="MINERU_BACKEND override")
+    parser.add_argument("--method", help="MINERU_METHOD override")
+    parser.add_argument("--lang", help="MINERU_LANG override")
+    parser.add_argument("--server-url", help="MINERU_SERVER_URL override")
+    parser.add_argument(
+        "--disable-seal",
+        action="store_true",
+        help="skip MinerU seal OCR prediction when supported",
+    )
+    parser.add_argument(
+        "--disable-formula",
+        action="store_true",
+        help="skip MinerU formula recognition when supported",
+    )
+    parser.add_argument(
+        "--lazy",
+        action="store_true",
+        help="reuse existing middle.json in the output directory when available",
+    )
+    parser.add_argument(
+        "--fork-pdf-to-middle",
+        action="store_true",
+        help="run MinerU middle.json extraction in a child process",
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="log level",
+    )
+    args = parser.parse_args()
+
+    logging.basicConfig(level=getattr(logging, args.log_level))
+
+    if len(args.pdf) > 1 and args.outdir:
+        raise ValueError("--outdir cannot be used with multiple PDF inputs")
+
+    text_mds = [
+        _convert_one_pdf(args, Path(pdf_arg))
+        for pdf_arg in args.pdf
+    ]
+    for text_md in text_mds:
+        print(text_md)
     return 0
 
 
