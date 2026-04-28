@@ -23,3 +23,25 @@
 - 用途は HTML 出力されたソース画像リンク行のラッパーで、CSS から余白と右寄せを与えること。
 - 現在の使用箇所は table の HTML 出力。
 - JavaScript からは参照されておらず、JS が使うのは `source-image-link` と `source-image-modal` 系。
+
+## cross_page_table_merge 後の空テーブル
+
+- `middle.json` 内の `type == "table"` で HTML を持たないものを調べると、`lines_deleted: true` を持つ `table_body` だけが残るケースが複数あった。
+- このパターンは `cross_page_table_merge` の副作用で、前ページ側の table に統合された後ページ側の殻が残っている可能性が高い。
+- 観測上の特徴:
+  - 子 block がほぼ `table_body` のみ
+  - `table_body.lines == []`
+  - `lines_deleted: true`
+  - 前ページに HTML を持つ近い table があることが多い
+- 例:
+  - `pdf/senryaku/__data/20260325_senryaku_keihi_qa.pdf/middle.json`
+    - page 1 に HTML あり table
+    - page 2 に `html_count = 0` かつ `lines_deleted: true` の table
+  - `anzen/pdf/__data/tougou.pdf/middle.json`
+    - page 103 に HTML あり table
+    - page 104, 105 に空の table 残骸
+- 一方で、統合後の table 側は HTML は残っても `image_path` が落ちることがあり、上流の後処理バグの可能性がある。
+- renderer 側の応急策アイデア:
+  - HTML のない table に遭遇したら、同じ page の `preproc_blocks` から対応する table を探す。
+  - まずは近い bbox や同系統の table block を手がかりにして、そこに `image_path` があれば補う。
+  - table HTML 自体を `preproc_blocks` から補完するかどうかは別判断として、少なくとも `image_path` の導入候補としては使える。
