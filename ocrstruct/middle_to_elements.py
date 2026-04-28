@@ -76,26 +76,6 @@ def extract_text_from_block(block: dict) -> str:
     return normalize_text("//".join(out))
 
 
-def _extract_texts_from_lines(lines: list[dict]) -> list[str]:
-    texts: list[str] = []
-    for line in lines:
-        if not isinstance(line, dict):
-            continue
-        spans = line.get("spans")
-        if not isinstance(spans, list):
-            continue
-        line_text: list[str] = []
-        for span in spans:
-            if not isinstance(span, dict):
-                continue
-            content = span.get("content")
-            if isinstance(content, str) and content:
-                line_text.append(content)
-        if line_text:
-            texts.append("".join(line_text))
-    return texts
-
-
 def _extract_text_lines_with_bbox(block: dict, *, page_idx: int) -> list[Element]:
     lines = block.get("lines")
     if not isinstance(lines, list):
@@ -159,7 +139,7 @@ def _warn_missing_bbox(es: list[Element], block_type: str) -> None:
                 "Missing bbox for non-empty element (block_type=%s loc=%s): %r",
                 block_type,
                 e.loc,
-                e.to_str(),
+                e.to_markdown_for_llm(),
             )
 
 
@@ -375,7 +355,7 @@ def collect_page_header_footer_texts(
 def _merge_text_from_block(block: dict, *, page_idx: int) -> str:
     out: list[str] = []
     for line in _extract_text_lines_with_bbox(block, page_idx=page_idx):
-        out.append(line.to_str())
+        out.append(line.to_markdown_for_llm())
     return normalize_text("\n".join(out))
 
 
@@ -407,14 +387,13 @@ def _find_first_image_info(block: dict) -> tuple[str | None, BBox | None]:
     return None, block_bbox
 
 
-def _join_image_path(img_bucket_path: str, image_path: str) -> str:
-    return f"{img_bucket_path.rstrip('/')}/{image_path.lstrip('/')}"
+def _join_image_path(image_path: str) -> str:
+    return f"images/{image_path.lstrip('/')}"
 
 
 def _block_to_elements(
     block: dict,
     *,
-    img_bucket_path: str,
     page_idx: int,
 ) -> list[Element]:
     block_type = block.get("type")
@@ -459,7 +438,7 @@ def _block_to_elements(
                     continue
                 child_lines = _extract_text_lines_with_bbox(child, page_idx=page_idx)
                 if child_lines:
-                    item_text = "\n".join(line.to_str() for line in child_lines).strip()
+                    item_text = "\n".join(line.to_markdown_for_llm() for line in child_lines).strip()
                     if item_text:
                         out.append(Element(
                             kind= 'item',
@@ -482,7 +461,7 @@ def _block_to_elements(
             loc= (text_lines[0].loc or block_loc) if text_lines else loc
         out.append(Element(
             kind='math',
-            image_path= _join_image_path(img_bucket_path, image_path) if image_path else None,
+            image_path= _join_image_path(image_path) if image_path else None,
             text= text,
             loc= loc
         ))
@@ -506,13 +485,13 @@ def _block_to_elements(
                     caption.extend(
                         line
                         for line in _extract_text_lines_with_bbox(child, page_idx=page_idx)
-                        if line.to_str()
+                        if line.to_markdown_for_llm()
                     )
                 elif ctype in {"image_footnote", "table_footnote", "chart_footnote"}:
                     footnote.extend(
                         line
                         for line in _extract_text_lines_with_bbox(child, page_idx=page_idx)
-                        if line.to_str()
+                        if line.to_markdown_for_llm()
                     )
                 elif ctype == "table_body":
                     lines = child.get("lines")
@@ -544,28 +523,28 @@ def _block_to_elements(
                 case 'image':
                     out.append(Element(
                         kind='image',
-                        image_path= _join_image_path(img_bucket_path, image_path),
+                        image_path= _join_image_path(image_path),
                         text= None,
                         loc= image_loc,
                     ))
                 case 'table':
                     out.append(Element(
                         kind='table',
-                        image_path= _join_image_path(img_bucket_path, image_path),
+                        image_path= _join_image_path(image_path),
                         text= html_body,
                         loc= image_loc
                     ))
                 case 'chart':
                     out.append(Element(
                         kind='chart',
-                        image_path= _join_image_path(img_bucket_path, image_path),
+                        image_path= _join_image_path(image_path),
                         text= None,
                         loc= image_loc,
                     ))
                 case 'seal':                
                     out.append(Element(
                         kind='seal',
-                        image_path= _join_image_path(img_bucket_path, image_path),
+                        image_path= _join_image_path(image_path),
                         text= None,
                         loc= image_loc,
                     ))
@@ -597,7 +576,7 @@ def _block_to_elements(
     raise RuntimeError(f"Unsupported block_type: {block_type}")
 
 
-def to_elements(middle: dict, *, img_bucket_path: str) -> list[Element]:
+def middle_to_elements(middle: dict) -> list[Element]:
     prepared_middle = merge_discarded_blocks_in_middle(middle)
     pdf_info = prepared_middle.get("pdf_info")
     if not isinstance(pdf_info, list):
@@ -618,7 +597,6 @@ def to_elements(middle: dict, *, img_bucket_path: str) -> list[Element]:
             out.extend(
                 _block_to_elements(
                     block,
-                    img_bucket_path=img_bucket_path,
                     page_idx=page_idx,
                 )
             )
@@ -627,8 +605,3 @@ def to_elements(middle: dict, *, img_bucket_path: str) -> list[Element]:
     while out and out[-1].kind == 'empty':
         out.pop()
     return out
-
-
-def to_markdown(middle: dict, *, img_bucket_path: str) -> str:
-    es = to_elements(middle, img_bucket_path=img_bucket_path)
-    return "\n".join(e.to_str() for e in es)

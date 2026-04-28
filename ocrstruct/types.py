@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from typing import Literal
-
-from pydantic import BaseModel
+from pathlib import Path
+from pydantic import BaseModel, TypeAdapter
+import json
 
 from ocrstruct.table import encode_html_table_eq_tokens, html_tables_to_markdown
 
@@ -136,7 +137,7 @@ class Element(BaseModel):
                 assert self.level is None
                 return f"![印章画像]({self.image_path})"
 
-    def to_markdown_for_payload(self) -> str:
+    def to_markdown_for_llm(self) -> str:
         '''For LLM'''
         match self.kind:
             case "empty":
@@ -183,9 +184,6 @@ class Element(BaseModel):
             case "seal":
                 assert self.text is None
                 return f"![印章画像]({self.image_path})"
-
-    def to_str(self) -> str:
-        return self.to_markdown_for_payload()
 
     def embed_alt_and_description(self) -> str:
         match self.alt, self.description:
@@ -257,3 +255,14 @@ class Element(BaseModel):
     def source_image_link(self):
         assert self.image_path
         return f'<span class="source-image-link-row"><a href="{self.image_path}" class="source-image-link">👁️‍🗨️</a></span>'
+
+
+def elements_to_markdown(
+    elements: list[Element],
+    *,
+    llm: bool = False
+) -> str:
+    if llm:
+        return "\n".join(element.to_markdown_for_llm() for element in elements)
+    else:
+        return "\n".join(element.to_markdown() for element in elements)

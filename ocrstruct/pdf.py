@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Literal
 from typing import NamedTuple
 from typing import Any
+from pydantic import BaseModel
 
 from mineru.backend.hybrid.hybrid_analyze import doc_analyze as hybrid_doc_analyze
 from mineru.backend.pipeline.pipeline_analyze import (
@@ -18,22 +19,22 @@ from mineru.backend.pipeline.pipeline_middle_json_mkcontent import (
 )
 from mineru.backend.vlm.vlm_analyze import doc_analyze as vlm_doc_analyze
 from mineru.backend.vlm.vlm_middle_json_mkcontent import union_make as vlm_union_make
-from mineru.cli.common import convert_pdf_bytes_to_bytes, prepare_env
+from mineru.cli.common import convert_pdf_bytes_to_bytes
 from mineru.data.data_reader_writer import FileBasedDataWriter
 from mineru.utils.engine_utils import get_vlm_engine
 from mineru.utils.enum_class import MakeMode
 from pypdf import PdfReader
 
-from ocrstruct.middle_to_elements import to_elements
+from ocrstruct.middle_to_elements import middle_to_elements
 from ocrstruct.types import BBox, Element, LinkRegion
+from ocrstruct.utils import BaseModelWithSave, load_json, save_json
 
 
 logger = logging.getLogger(__name__)
 
 
-class MineruMarkdownResult(NamedTuple):
+class Result(BaseModelWithSave):
     middle_json: dict
-    markdown_text: str | None
     extracted_by: str
 
 
@@ -66,92 +67,6 @@ def _maybe_disable_pipeline_seal_ocr(disabled: bool):
         yield
     finally:
         AtomModelSingleton.get_atom_model = original_get_atom_model
-
-
-def middle_json_to_elements(middle_json: dict, *, img_bucket_path: str = "images") -> list[Element]:
-    return to_elements(middle_json, img_bucket_path=img_bucket_path)
-
-
-def elements_to_markdown(
-    elements: list[Element],
-    *,
-    mode: Literal["rag", "html"] = "rag",
-) -> str:
-    if mode == "rag":
-        return "\n".join(element.to_str() for element in elements)
-    if mode == "html":
-        return "\n".join(element.to_markdown() for element in elements)
-    raise ValueError(f"Unsupported markdown mode: {mode}")
-
-
-def dump_elements_json(elements: list[Element], path: str | Path) -> Path:
-    out = Path(path)
-    out.write_text(
-        json.dumps([element.model_dump(mode="json") for element in elements], ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    return out
-
-
-def load_elements_json(elements_json_path: str | Path) -> list[Element]:
-    path = Path(elements_json_path)
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(raw, list):
-        raise ValueError("elements.json must be a list")
-    return [Element.model_validate(item) for item in raw]
-
-
-def _md_content_to_text(md_content: Any) -> str | None:
-    if isinstance(md_content, list):
-        return "\n".join(str(x) for x in md_content)
-    if md_content is None:
-        return None
-    return str(md_content)
-
-
-def render_middle_json_to_markdown(
-    middle_json: dict,
-    *,
-    markdown_image_bucket_path: str = "images",
-) -> MineruMarkdownResult:
-    pdf_info = middle_json.get("pdf_info")
-    if not isinstance(pdf_info, list):
-        raise ValueError("middle.json does not have valid 'pdf_info'")
-
-    renderer_attempts: list[tuple[str, Any]] = [
-        ("mineru/pipeline", pipeline_union_make),
-        ("mineru/vlm", vlm_union_make),
-    ]
-    for extracted_by, renderer in renderer_attempts:
-        try:
-            md_content = renderer(
-                pdf_info,
-                MakeMode.MM_MD,
-                markdown_image_bucket_path,
-            )
-            return MineruMarkdownResult(
-                middle_json=middle_json,
-                markdown_text=_md_content_to_text(md_content),
-                extracted_by=extracted_by,
-            )
-        except Exception:
-            logger.debug("Markdown render via %s failed", extracted_by, exc_info=True)
-
-    logger.warning("Falling back to ocrstruct markdown renderer for middle.json")
-    fallback_elements = middle_json_to_elements(
-        middle_json,
-        img_bucket_path=markdown_image_bucket_path,
-    )
-    return MineruMarkdownResult(
-        middle_json=middle_json,
-        markdown_text=elements_to_markdown(fallback_elements),
-        extracted_by="ocrstruct/fallback",
-    )
-
-
-def load_middle_json(middle_json_path: str | Path) -> dict:
-    path = Path(middle_json_path)
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _pdf_obj_to_str(value: Any, *, max_depth: int = 4) -> str:
@@ -315,18 +230,24 @@ def extract_pdf_link_regions(pdf_path: str) -> list[LinkRegion]:
     return out
 
 
-def convert_pdf_to_middle_and_markdown(
+def convert_pdf_to_middle(
     pdf_path: str,
     *,
-    tmpdir: str,
-    image_dir: str | None = None,
-    markdown_image_bucket_path: str = "images",
+    outdir: str,
     backend: str | None = None,
     method: str | None = None,
     lang: str | None = None,
     server_url: str | None = None,
     seal_enable: bool = True,
-) -> MineruMarkdownResult:
+    lazy: bool = False,
+) -> Result:
+    middle_path = Path(outdir) / "middle.json"
+
+    if lazy and os.path.exists(middle_path):
+        if res := Result.load_json(middle_path):
+            return res
+
+
     backend = backend or os.getenv("MINERU_BACKEND", "pipeline")
     method = method or os.getenv("MINERU_METHOD", "auto")
     lang = lang or os.getenv("MINERU_LANG", "japan")
@@ -336,16 +257,11 @@ def convert_pdf_to_middle_and_markdown(
         file_bytes = f.read()
 
     pdf_bytes = convert_pdf_bytes_to_bytes(file_bytes, 0, None)
-    file_name = Path(pdf_path).stem
-
-    Path(tmpdir).mkdir(parents=True, exist_ok=True)
+    Path(outdir).mkdir(parents=True, exist_ok=True)
+    local_image_dir = str(Path(outdir) / "images")
+    Path(local_image_dir).mkdir(parents=True, exist_ok=True)
 
     if backend == "pipeline":
-        if image_dir is None:
-            local_image_dir, _local_md_dir = prepare_env(tmpdir, file_name, method)
-        else:
-            local_image_dir = image_dir
-            Path(local_image_dir).mkdir(parents=True, exist_ok=True)
         image_writer = FileBasedDataWriter(local_image_dir)
         middle_json_holder: dict[str, dict] = {}
 
@@ -370,33 +286,18 @@ def convert_pdf_to_middle_and_markdown(
                 table_enable=True,
             )
         middle_json = middle_json_holder["middle_json"]
-        md_content = pipeline_union_make(
-            middle_json["pdf_info"],
-            MakeMode.MM_MD,
-            markdown_image_bucket_path,
-        )
         extracted_by = "mineru/pipeline"
 
     elif backend.startswith("vlm-"):
         backend_name = backend[4:]
         if backend_name == "auto-engine":
             backend_name = get_vlm_engine(inference_engine="auto", is_async=False)
-        if image_dir is None:
-            local_image_dir, _local_md_dir = prepare_env(tmpdir, file_name, "vlm")
-        else:
-            local_image_dir = image_dir
-            Path(local_image_dir).mkdir(parents=True, exist_ok=True)
         image_writer = FileBasedDataWriter(local_image_dir)
         middle_json, _infer = vlm_doc_analyze(
             pdf_bytes,
             image_writer=image_writer,
             backend=backend_name,
             server_url=server_url,
-        )
-        md_content = vlm_union_make(
-            middle_json["pdf_info"],
-            MakeMode.MM_MD,
-            markdown_image_bucket_path,
         )
         extracted_by = f"mineru/vlm:{backend_name}"
 
@@ -405,11 +306,6 @@ def convert_pdf_to_middle_and_markdown(
         if backend_name == "auto-engine":
             backend_name = get_vlm_engine(inference_engine="auto", is_async=False)
         parse_method = f"hybrid_{method}"
-        if image_dir is None:
-            local_image_dir, _local_md_dir = prepare_env(tmpdir, file_name, parse_method)
-        else:
-            local_image_dir = image_dir
-            Path(local_image_dir).mkdir(parents=True, exist_ok=True)
         image_writer = FileBasedDataWriter(local_image_dir)
         middle_json, _infer, _ocr_enabled = hybrid_doc_analyze(
             pdf_bytes,
@@ -420,48 +316,37 @@ def convert_pdf_to_middle_and_markdown(
             inline_formula_enable=True,
             server_url=server_url,
         )
-        md_content = vlm_union_make(
-            middle_json["pdf_info"],
-            MakeMode.MM_MD,
-            markdown_image_bucket_path,
-        )
         extracted_by = f"mineru/hybrid:{backend_name}"
-
     else:
         raise ValueError("MINERU_BACKEND must be 'pipeline', 'vlm-*', or 'hybrid-*")
 
-    middle_path = Path(tmpdir) / "middle.json"
-    middle_path.write_text(
-        json.dumps(middle_json, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    logger.info(f"MinerU middle_json saved: {middle_path}")
-
-    return MineruMarkdownResult(
+    res = Result(
         middle_json=middle_json,
-        markdown_text=_md_content_to_text(md_content),
         extracted_by=extracted_by,
     )
 
+    res.save_json(middle_path)
+    logger.info(f"MinerU middle_json saved: {middle_path}")
+    return res
 
 def convert_pdf_to_elements(
     pdf_path: str,
     *,
-    tmpdir: str,
-    img_bucket_path: str = "images",
+    outdir: str,
     backend: str | None = None,
     method: str | None = None,
     lang: str | None = None,
     server_url: str | None = None,
     seal_enable: bool = True,
+    lazy: bool = False,
 ) -> list[Element]:
-    result = convert_pdf_to_middle_and_markdown(
-        pdf_path,
-        tmpdir=tmpdir,
-        backend=backend,
-        method=method,
-        lang=lang,
-        server_url=server_url,
-        seal_enable=seal_enable,
-    )
-    return middle_json_to_elements(result.middle_json, img_bucket_path=img_bucket_path)
+    elements_json_path = Path(outdir) / 'elements.json'
+    elements : list[Element] | None = None
+    if lazy and os.path.exists(elements_json_path):
+        if elements := load_json(list[Element], elements_json_path):
+            return elements
+    result = convert_pdf_to_middle(pdf_path, outdir= outdir, backend= backend, method= method, lang= lang, server_url= server_url, seal_enable= seal_enable, lazy= lazy)
+    elements = middle_to_elements(result.middle_json)
+    assert elements
+    save_json(list[Element], elements_json_path, elements)
+    return elements

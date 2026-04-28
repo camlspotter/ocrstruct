@@ -7,16 +7,13 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+import os
 
-from ocrstruct.pdf import (
-    convert_pdf_to_middle_and_markdown,
-    dump_elements_json,
-    elements_to_markdown,
-    load_elements_json,
-    load_middle_json,
-    middle_json_to_elements,
-)
+from ocrstruct.pdf import convert_pdf_to_elements
+from ocrstruct.types import elements_to_markdown, Element
+from ocrstruct.middle_to_elements import middle_to_elements
 from ocrstruct.table import decode_html_table_eq_tokens
+from ocrstruct.utils import load_json, save_json
 
 
 logger = logging.getLogger(__name__)
@@ -144,9 +141,9 @@ def _write_outputs(
     return text_md, text_html
 
 
-def _write_elements_json(outdir: Path, elements_json_path: Path | None, elements: list) -> Path:
+def _write_elements_json(outdir: Path, elements_json_path: Path | None, elements: list[Element]) -> None:
     target = elements_json_path or (outdir / "elements.json")
-    return dump_elements_json(elements, target)
+    save_json(list[Element], target, elements)
 
 
 def _validate_from_middle_args(args: argparse.Namespace) -> None:
@@ -156,6 +153,7 @@ def _validate_from_middle_args(args: argparse.Namespace) -> None:
         "--lang": args.lang,
         "--server-url": args.server_url,
         "--disable-seal": args.disable_seal if args.disable_seal else None,
+        "--lazy": args.lazy if args.lazy else None,
     }
     used = [name for name, value in ignored_args.items() if value is not None]
     if used:
@@ -170,6 +168,7 @@ def _validate_from_elements_args(args: argparse.Namespace) -> None:
         "--server-url": args.server_url,
         "--from-middle": args.from_middle,
         "--disable-seal": args.disable_seal if args.disable_seal else None,
+        "--lazy": args.lazy if args.lazy else None,
     }
     used = [name for name, value in ignored_args.items() if value is not None]
     if used:
@@ -182,14 +181,6 @@ def main() -> int:
         description="Convert PDF to markdown + images using MinerU.",
     )
     parser.add_argument("pdf", nargs="?", help="input PDF path")
-    parser.add_argument(
-        "--from-middle",
-        help="reuse an existing middle.json and render elements.json/text.md/text.html without re-running OCR",
-    )
-    parser.add_argument(
-        "--from-elements",
-        help="reuse an existing elements.json and render text.md/text.html without re-running OCR",
-    )
     parser.add_argument(
         "--outdir",
         help="output directory (default: <pdf-basename-without-ext>/ or directory containing middle.json/elements.json)",
@@ -204,6 +195,11 @@ def main() -> int:
         help="skip MinerU seal OCR prediction when supported",
     )
     parser.add_argument(
+        "--lazy",
+        action="store_true",
+        help="reuse existing middle.json in the output directory when available",
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
@@ -213,89 +209,40 @@ def main() -> int:
 
     logging.basicConfig(level=getattr(logging, args.log_level))
 
-    if args.from_middle and args.from_elements:
-        raise ValueError("--from-middle and --from-elements cannot be used together")
-
-    if args.from_middle:
-        _validate_from_middle_args(args)
-        middle_json_path = Path(args.from_middle).expanduser().resolve()
-        if not middle_json_path.exists():
-            raise FileNotFoundError(f"middle.json not found: {middle_json_path}")
-        outdir = Path(args.outdir).expanduser().resolve() if args.outdir else _default_middle_output_dir(middle_json_path)
-        outdir.mkdir(parents=True, exist_ok=True)
-        middle_json = load_middle_json(middle_json_path)
-        elements = middle_json_to_elements(middle_json, img_bucket_path="images")
-        elements_json_path = _write_elements_json(outdir, None, elements)
-        text_md, text_html = _write_outputs(
-            outdir,
-            elements_to_markdown(elements, mode="rag"),
-            html_markdown_text=elements_to_markdown(elements, mode="html"),
-        )
-        logger.info("Rendered elements from middle JSON: %s", middle_json_path)
-        logger.info("Wrote elements: %s", elements_json_path)
-        logger.info("Wrote markdown: %s", text_md)
-        if text_html is not None:
-            logger.info("Wrote html: %s", text_html)
-        print(text_md)
-        return 0
-
-    if args.from_elements:
-        _validate_from_elements_args(args)
-        elements_json_path = Path(args.from_elements).expanduser().resolve()
-        if not elements_json_path.exists():
-            raise FileNotFoundError(f"elements.json not found: {elements_json_path}")
-        outdir = Path(args.outdir).expanduser().resolve() if args.outdir else _default_elements_output_dir(elements_json_path)
-        outdir.mkdir(parents=True, exist_ok=True)
-        elements = load_elements_json(elements_json_path)
-        text_md, text_html = _write_outputs(
-            outdir,
-            elements_to_markdown(elements, mode="rag"),
-            html_markdown_text=elements_to_markdown(elements, mode="html"),
-        )
-        logger.info("Rendered markdown from elements JSON: %s", elements_json_path)
-        logger.info("Wrote markdown: %s", text_md)
-        if text_html is not None:
-            logger.info("Wrote html: %s", text_html)
-        print(text_md)
-        return 0
-
     if not args.pdf:
-        raise ValueError("pdf is required unless --from-middle or --from-elements is used")
+        raise ValueError("pdf is required")
 
-    pdf_path = Path(args.pdf).expanduser().resolve()
+    pdf_path = Path(args.pdf)
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
-    outdir = Path(args.outdir).expanduser().resolve() if args.outdir else _default_output_dir(pdf_path)
-    images_dir = outdir / "images"
+    outdir = Path(args.outdir) if args.outdir else _default_output_dir(pdf_path)
     outdir.mkdir(parents=True, exist_ok=True)
-    images_dir.mkdir(parents=True, exist_ok=True)
+    (outdir / "images").mkdir(parents=True, exist_ok=True)
 
-    result = convert_pdf_to_middle_and_markdown(
+    elements_json_path = outdir / 'elements.json'
+    elements = convert_pdf_to_elements(
         str(pdf_path),
-        tmpdir=str(outdir),
-        image_dir=str(images_dir),
-        markdown_image_bucket_path="images",
+        outdir=str(outdir),
         backend=args.backend,
         method=args.method,
         lang=args.lang,
         server_url=args.server_url,
         seal_enable=not args.disable_seal,
+        lazy=args.lazy,
     )
 
-    elements = middle_json_to_elements(result.middle_json, img_bucket_path="images")
-    elements_json_path = _write_elements_json(outdir, None, elements)
     text_md, text_html = _write_outputs(
         outdir,
-        elements_to_markdown(elements, mode="rag"),
-        html_markdown_text=elements_to_markdown(elements, mode="html"),
+        elements_to_markdown(elements, llm=True),
+        html_markdown_text=elements_to_markdown(elements, llm=False),
     )
 
     logger.info("Wrote elements: %s", elements_json_path)
     logger.info("Wrote markdown: %s", text_md)
     if text_html is not None:
         logger.info("Wrote html: %s", text_html)
-    logger.info("Images dir: %s", images_dir)
+    logger.info("Images dir: %s", outdir / "images")
     logger.info("Middle JSON: %s", outdir / "middle.json")
     print(text_md)
     return 0

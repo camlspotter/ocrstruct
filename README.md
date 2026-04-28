@@ -96,7 +96,7 @@ th {
 
 Public API (from `ocrstruct.__init__`):
 
-- `convert_pdf_to_elements(pdf_path, *, tmpdir, img_bucket_path="images", backend=None, method=None, lang=None, server_url=None, seal_enable=True)`
+- `convert_pdf_to_elements(pdf_path, *, tmpdir, backend=None, method=None, lang=None, server_url=None, seal_enable=True)`
 - `dump_elements_json(elements, path)`
 - `load_elements_json(path)`
 - `elements_to_markdown(elements)`
