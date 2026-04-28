@@ -4,9 +4,9 @@ import argparse
 import logging
 from pathlib import Path
 
-from ocrstruct.html import elements_to_html
-from ocrstruct.pdf import convert_pdf_to_elements
-from ocrstruct.types import elements_to_markdown
+from ocrstruct.html import result_to_html
+from ocrstruct.middle_to_markdown import result_to_markdown
+from ocrstruct.pdf import convert_pdf_to_middle
 
 
 logger = logging.getLogger(__name__)
@@ -36,8 +36,7 @@ def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> Path:
     outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "images").mkdir(parents=True, exist_ok=True)
 
-    elements_json_path = outdir / "elements.json"
-    elements = convert_pdf_to_elements(
+    result = convert_pdf_to_middle(
         str(pdf_path),
         outdir=str(outdir),
         backend=args.backend,
@@ -47,18 +46,16 @@ def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> Path:
         seal_enable=not args.disable_seal,
         formula_enable=not args.disable_formula,
         lazy=args.lazy,
-        fork=args.fork_pdf_to_middle,
     )
 
-    markdown_text = elements_to_markdown(elements, llm=True)
-    html_text = elements_to_html(elements)
+    markdown_text = result_to_markdown(result)
+    html_text = result_to_html(result)
     text_md, text_html = _write_outputs(
         outdir,
         markdown_text,
         html_text,
     )
 
-    logger.info("Wrote elements: %s", elements_json_path)
     logger.info("Wrote markdown: %s", text_md)
     if text_html is not None:
         logger.info("Wrote html: %s", text_html)
@@ -70,12 +67,12 @@ def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="ocrstruct",
-        description="Convert PDF to markdown + images using MinerU.",
+        description="Convert PDF to middle.json, markdown, and HTML using MinerU.",
     )
     parser.add_argument("pdf", nargs="+", help="input PDF path(s)")
     parser.add_argument(
         "--outdir",
-        help="output directory (default: <pdf-basename-without-ext>/ or directory containing middle.json/elements.json)",
+        help="output directory (default: <pdf-basename-without-ext>/)",
     )
     parser.add_argument("--backend", help="MINERU_BACKEND override")
     parser.add_argument("--method", help="MINERU_METHOD override")
@@ -95,21 +92,6 @@ def main() -> int:
         "--lazy",
         action="store_true",
         help="reuse existing middle.json in the output directory when available",
-    )
-    parser.add_argument(
-        "--fork-pdf-to-middle",
-        action="store_const",
-        const=True,
-        default=None,
-        dest="fork_pdf_to_middle",
-        help="run MinerU middle.json extraction in a child process",
-    )
-    parser.add_argument(
-        "--no-fork-pdf-to-middle",
-        action="store_const",
-        const=False,
-        dest="fork_pdf_to_middle",
-        help="run MinerU middle.json extraction in the current process",
     )
     parser.add_argument(
         "--log-level",

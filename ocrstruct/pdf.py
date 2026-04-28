@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import json
 import logging
-import multiprocessing as mp
 import os
-import traceback
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
 from typing import NamedTuple
 from typing import Any
+from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
 from mineru.backend.hybrid.hybrid_analyze import doc_analyze as hybrid_doc_analyze
@@ -27,17 +26,24 @@ from mineru.utils.engine_utils import get_vlm_engine
 from mineru.utils.enum_class import MakeMode
 from pypdf import PdfReader
 
-from ocrstruct.middle_to_elements import middle_to_elements
-from ocrstruct.types import BBox, Element, LinkRegion
+from ocrstruct.middle import BBox, Middle, Result
 from ocrstruct.utils import BaseModelWithSave, load_json, save_json
 
 
 logger = logging.getLogger(__name__)
 
 
-class Result(BaseModelWithSave):
-    middle_json: dict
-    extracted_by: str
+if TYPE_CHECKING:
+    from ocrstruct.types import Element
+
+
+class LinkRegion(BaseModelWithSave):
+    page_idx: int
+    bbox: BBox
+    target_kind: Literal["external", "internal", "unknown"]
+    uri: str | None = None
+    dest_page_idx: int | None = None
+    dest_raw: str | None = None
 
 
 class _NoopSealOcrModel:
@@ -102,11 +108,11 @@ def _maybe_bbox_from_rect(rect: Any) -> BBox | None:
         y0 = float(rect[1])
         x1 = float(rect[2])
         y1 = float(rect[3])
-        return BBox(
-            x0=min(x0, x1),
-            y0=min(y0, y1),
-            x1=max(x0, x1),
-            y1=max(y0, y1),
+        return (
+            min(x0, x1),
+            min(y0, y1),
+            max(x0, x1),
+            max(y0, y1),
         )
     except Exception:
         return None
@@ -243,38 +249,12 @@ def convert_pdf_to_middle(
     seal_enable: bool = True,
     formula_enable: bool = True,
     lazy: bool = False,
-    fork: bool | None = None,
 ) -> Result:
     middle_path = Path(outdir) / "middle.json"
 
     if lazy and os.path.exists(middle_path):
         if res := Result.load_json(middle_path):
             return res
-
-    if fork is None:
-        fork_env = os.getenv("OCRSTRUCT_FORK_PDF_TO_MIDDLE")
-        if fork_env is None:
-            fork = True
-        else:
-            fork = fork_env.lower() in {
-                "1",
-                "true",
-                "yes",
-                "on",
-            }
-
-    if fork:
-        return _convert_pdf_to_middle_forked(
-            pdf_path,
-            outdir=outdir,
-            backend=backend,
-            method=method,
-            lang=lang,
-            server_url=server_url,
-            seal_enable=seal_enable,
-            formula_enable=formula_enable,
-            lazy=lazy,
-        )
 
     return _convert_pdf_to_middle_impl(
         pdf_path,
@@ -372,92 +352,13 @@ def _convert_pdf_to_middle_impl(
         raise ValueError("MINERU_BACKEND must be 'pipeline', 'vlm-*', or 'hybrid-*")
 
     res = Result(
-        middle_json=middle_json,
+        middle_json=Middle.model_validate(middle_json),
         extracted_by=extracted_by,
     )
 
     res.save_json(middle_path)
     logger.info(f"MinerU middle_json saved: {middle_path}")
     return res
-
-
-def _convert_pdf_to_middle_child(
-    error_queue: Any,
-    pdf_path: str,
-    *,
-    outdir: str,
-    backend: str | None,
-    method: str | None,
-    lang: str | None,
-    server_url: str | None,
-    seal_enable: bool,
-    formula_enable: bool,
-) -> None:
-    try:
-        _convert_pdf_to_middle_impl(
-            pdf_path,
-            outdir=outdir,
-            backend=backend,
-            method=method,
-            lang=lang,
-            server_url=server_url,
-            seal_enable=seal_enable,
-            formula_enable=formula_enable,
-        )
-    except BaseException:
-        error_queue.put(traceback.format_exc())
-        raise
-
-
-def _convert_pdf_to_middle_forked(
-    pdf_path: str,
-    *,
-    outdir: str,
-    backend: str | None,
-    method: str | None,
-    lang: str | None,
-    server_url: str | None,
-    seal_enable: bool,
-    formula_enable: bool,
-    lazy: bool,
-) -> Result:
-    middle_path = Path(outdir) / "middle.json"
-    if lazy and os.path.exists(middle_path):
-        if res := Result.load_json(middle_path):
-            return res
-
-    ctx = mp.get_context("spawn")
-    error_queue = ctx.Queue()
-    proc = ctx.Process(
-        target=_convert_pdf_to_middle_child,
-        args=(error_queue, pdf_path),
-        kwargs={
-            "outdir": outdir,
-            "backend": backend,
-            "method": method,
-            "lang": lang,
-            "server_url": server_url,
-            "seal_enable": seal_enable,
-            "formula_enable": formula_enable,
-        },
-    )
-    proc.start()
-    proc.join()
-
-    error_text: str | None = None
-    if not error_queue.empty():
-        error_text = error_queue.get()
-
-    if proc.exitcode != 0:
-        if error_text is not None:
-            raise RuntimeError(
-                f"forked convert_pdf_to_middle failed for {pdf_path}\n{error_text}"
-            )
-        raise RuntimeError(
-            f"forked convert_pdf_to_middle failed for {pdf_path} with exit code {proc.exitcode}"
-        )
-
-    return Result.load_json(middle_path)
 
 def convert_pdf_to_elements(
     pdf_path: str,
@@ -470,15 +371,27 @@ def convert_pdf_to_elements(
     seal_enable: bool = True,
     formula_enable: bool = True,
     lazy: bool = False,
-    fork: bool | None = None,
 ) -> list[Element]:
-    elements_json_path = Path(outdir) / 'elements.json'
-    elements : list[Element] | None = None
+    from ocrstruct.middle_to_elements import middle_to_elements
+    from ocrstruct.types import Element
+
+    elements_json_path = Path(outdir) / "elements.json"
+    elements: list[Element] | None = None
     if lazy and os.path.exists(elements_json_path):
         if elements := load_json(list[Element], elements_json_path):
             return elements
-    result = convert_pdf_to_middle(pdf_path, outdir= outdir, backend= backend, method= method, lang= lang, server_url= server_url, seal_enable= seal_enable, formula_enable=formula_enable, lazy= lazy, fork=fork)
-    elements = middle_to_elements(result.middle_json)
+    result = convert_pdf_to_middle(
+        pdf_path,
+        outdir=outdir,
+        backend=backend,
+        method=method,
+        lang=lang,
+        server_url=server_url,
+        seal_enable=seal_enable,
+        formula_enable=formula_enable,
+        lazy=lazy,
+    )
+    elements = middle_to_elements(result.middle_json.model_dump(by_alias=True))
     assert elements
     save_json(list[Element], elements_json_path, elements)
     return elements
