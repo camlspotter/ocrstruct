@@ -33,3 +33,8 @@ packages = ["ocrstruct"]
 [tool.pyright]
 include = ["ocrstruct", "tests"]
 exclude = ["**/__pycache__"]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+]
