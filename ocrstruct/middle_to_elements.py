@@ -476,18 +476,16 @@ def _block_to_elements(
         return out
 
     if block_type in {"interline_equation"}:
+        image_path, image_bbox = _find_first_image_info(block)
+        loc= Location(bbox= image_bbox, page_idx= page_idx) if image_bbox else block_loc
         if text:
-            loc= (text_lines[0].loc or block_loc) if text_lines else block_loc
-            out.append(Element(kind='math', text=text, loc= loc))
-        else:
-            image_path, image_bbox = _find_first_image_info(block)
-            if image_path:
-                out.append(Element(
-                    kind='math',
-                    image_path= _join_image_path(img_bucket_path, image_path),
-                    text='',
-                    loc= Location(bbox= image_bbox, page_idx= page_idx) if image_bbox else block_loc
-                ))
+            loc= (text_lines[0].loc or block_loc) if text_lines else loc
+        out.append(Element(
+            kind='math',
+            image_path= _join_image_path(img_bucket_path, image_path) if image_path else None,
+            text= text,
+            loc= loc
+        ))
         _warn_missing_bbox(out, block_type)
         return out
 

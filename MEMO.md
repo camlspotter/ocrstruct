@@ -16,3 +16,10 @@
 1. まずリンク矩形を正として保持する。
 2. テキスト対応づけは重なり率 + 距離でスコアリングする。
 3. しきい値未満は「あいまい」として扱い、必要なら追加OCR/再解釈を行う。
+
+## HTMLレンダリングの source image link
+
+- `source-image-link-row` は現在使われている。
+- 用途は HTML 出力されたソース画像リンク行のラッパーで、CSS から余白と右寄せを与えること。
+- 現在の使用箇所は table の HTML 出力。
+- JavaScript からは参照されておらず、JS が使うのは `source-image-link` と `source-image-modal` 系。
