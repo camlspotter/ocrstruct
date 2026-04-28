@@ -1608,7 +1608,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bs4", specifier = ">=0.0.2" },
-    { name = "mineru", extras = ["core"], specifier = ">=3.0.0" },
+    { name = "mineru", extras = ["core"], specifier = "==3.0.9" },
     { name = "openai", specifier = ">=2.31.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.408" },

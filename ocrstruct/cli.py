@@ -98,8 +98,18 @@ def main() -> int:
     )
     parser.add_argument(
         "--fork-pdf-to-middle",
-        action="store_true",
+        action="store_const",
+        const=True,
+        default=None,
+        dest="fork_pdf_to_middle",
         help="run MinerU middle.json extraction in a child process",
+    )
+    parser.add_argument(
+        "--no-fork-pdf-to-middle",
+        action="store_const",
+        const=False,
+        dest="fork_pdf_to_middle",
+        help="run MinerU middle.json extraction in the current process",
     )
     parser.add_argument(
         "--log-level",

@@ -15,7 +15,7 @@ authors = [
 dependencies = [
   "bs4>=0.0.2",
   "pydantic>=2.12.5",
-  "mineru[core]>=3.0.0",
+  "mineru[core]==3.0.9",
   "openai>=2.31.0",
 ]
 

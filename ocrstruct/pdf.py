@@ -252,12 +252,16 @@ def convert_pdf_to_middle(
             return res
 
     if fork is None:
-        fork = os.getenv("OCRSTRUCT_FORK_PDF_TO_MIDDLE", "").lower() in {
-            "1",
-            "true",
-            "yes",
-            "on",
-        }
+        fork_env = os.getenv("OCRSTRUCT_FORK_PDF_TO_MIDDLE")
+        if fork_env is None:
+            fork = True
+        else:
+            fork = fork_env.lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
 
     if fork:
         return _convert_pdf_to_middle_forked(
