@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import cast
+from html import escape
+from typing import Literal, cast
 
-from ocrstruct.middle import Block, Content, Line, Middle, PageInfo, Result, Span
-from ocrstruct.table import encode_html_table_eq_tokens
+from ocrstruct.middle import Block, Content, ImageUnderstandingSummary, Line, Middle, PageInfo, Result, Span
+from ocrstruct.table import MultiCellMode, encode_html_table_eq_tokens, html_tables_to_markdown
+
+
+type ImageUnderstandingRenderMode = Literal["short", "long"]
 
 
 @dataclass(frozen=True)
@@ -16,6 +20,9 @@ class RenderOptions:
     include_page_footnotes: bool = True
     include_aside_text: bool = True
     include_images: bool = True
+    include_image_understanding: bool = False
+    image_understanding_render_mode: ImageUnderstandingRenderMode = "short"
+    table_multicell_mode: MultiCellMode | None = None
 
 
 def source_image_link(image_path: str) -> str:
@@ -205,10 +212,28 @@ def _equation_block_to_markdown(block: Block) -> str:
 
 def _media_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
     parts: list[str] = []
-    if options.include_images:
-        image_path = _find_first_image_path(block)
-        if image_path:
+    image_path = _find_first_image_path(block)
+    understanding = _find_first_image_understanding(block)
+    if (
+        options.include_images
+        and image_path is not None
+        and options.include_image_understanding
+        and understanding is not None
+    ):
+        parts.append(
+            _render_media_with_understanding(
+                image_path=image_path,
+                understanding=understanding,
+                options=options,
+            )
+        )
+    else:
+        if options.include_images and image_path:
             parts.append(f"![]({_render_image_path(image_path)})")
+        if options.include_image_understanding:
+            understanding_md = _render_image_understanding(understanding, options=options)
+            if understanding_md:
+                parts.append(understanding_md)
 
     parts.extend(
         block_to_markdown(child, options=options)
@@ -230,7 +255,13 @@ def _table_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
     if html is None:
         parts.append("<div>警告: HTMLのないテーブル</div>")
     else:
-        table_md = encode_html_table_eq_tokens(html)
+        if options.table_multicell_mode is None:
+            table_md = encode_html_table_eq_tokens(html)
+        else:
+            table_md = html_tables_to_markdown(
+                html,
+                multicell_mode=options.table_multicell_mode,
+            )
         if image_path:
             table_md = f"{table_md}\n{source_image_link(image_path)}"
         parts.append(table_md)
@@ -279,6 +310,80 @@ def _find_first_table_html(block: Block) -> str | None:
         if html := _find_first_table_html(child):
             return html
     return None
+
+
+def _find_first_image_understanding(block: Block) -> ImageUnderstandingSummary | None:
+    for line in block.lines:
+        for span in line.spans:
+            if span.image_understanding is not None:
+                return span.image_understanding
+    for child in block.blocks:
+        if understanding := _find_first_image_understanding(child):
+            return understanding
+    return None
+
+
+def _render_image_understanding(
+    understanding: ImageUnderstandingSummary | None,
+    *,
+    options: RenderOptions,
+) -> str:
+    if understanding is None:
+        return ""
+    description = _select_image_understanding_description(
+        understanding,
+        options=options,
+    )
+    if description is None:
+        return ""
+    mode_class = f"image-understanding--{options.image_understanding_render_mode}"
+    return (
+        f'<div class="image-understanding {mode_class}">'
+        f"<strong>画像理解:</strong> {escape(description)}"
+        "</div>"
+    )
+
+
+def _render_media_with_understanding(
+    *,
+    image_path: str,
+    understanding: ImageUnderstandingSummary,
+    options: RenderOptions,
+) -> str:
+    description = _select_image_understanding_description(
+        understanding,
+        options=options,
+    )
+    rendered_path = _render_image_path(image_path)
+    media_html = [
+        '<div class="image-understanding-layout">',
+        '<div class="image-understanding-layout__media">',
+        f'<img src="{escape(rendered_path)}" alt="" />',
+        source_image_link(image_path),
+        "</div>",
+    ]
+    if description is not None:
+        mode_class = f"image-understanding--{options.image_understanding_render_mode}"
+        media_html.extend(
+            [
+                f'<div class="image-understanding {mode_class}">',
+                "<strong>画像理解:</strong> "
+                f"{escape(description)}",
+                "</div>",
+            ]
+        )
+    media_html.append("</div>")
+    return "\n".join(media_html)
+
+
+def _select_image_understanding_description(
+    understanding: ImageUnderstandingSummary,
+    *,
+    options: RenderOptions,
+) -> str | None:
+    if options.image_understanding_render_mode == "long":
+        return understanding.long_description or understanding.short_description
+    return understanding.short_description or understanding.long_description
 
 
 def _block_text(block: Block) -> str:

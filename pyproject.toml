@@ -28,6 +28,7 @@ dev = [
 
 [project.scripts]
 ocrstruct = "ocrstruct.cli:main"
+ocrstruct-render = "ocrstruct.render_cli:main"
 ocrstruct-screening = "ocrstruct.image_screening_cli:main"
 ocrstruct-understanding = "ocrstruct.image_understanding_cli:main"
 

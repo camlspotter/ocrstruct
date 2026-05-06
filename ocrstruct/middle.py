@@ -46,6 +46,22 @@ class Span(Model):
     score: float | None = None
     image_path: str | None = None
     html: str | None = None
+    image_understanding: "ImageUnderstandingSummary | None" = None
+
+
+class ImageUnderstandingSummary(Model):
+    kind: str
+    rag_value: str
+    detail_level: str
+    keywords: list[str] = Field(default_factory=list)
+    notes: str | None = None
+    short_description: str | None = None
+    long_description: str | None = None
+    model: str
+    thinking: bool = False
+    screening_model: str
+    screening_thinking: bool | None = None
+    status_ok: bool = True
 
 
 class Line(Model):

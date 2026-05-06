@@ -8,7 +8,7 @@ import tempfile
 from typing import Any
 
 from ocrstruct.middle import Middle, Result
-from ocrstruct.middle_to_markdown import middle_to_markdown, result_to_markdown
+from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown, result_to_markdown
 from ocrstruct.table import decode_html_table_eq_tokens
 
 
@@ -91,9 +91,10 @@ def middle_to_html(
     middle: Middle,
     *,
     header_path: str | Path | None = None,
+    options: RenderOptions | None = None,
 ) -> str | None:
     return markdown_to_html(
-        middle_to_markdown(middle),
+        middle_to_markdown(middle, options=options),
         header_path=header_path,
     )
 
@@ -102,9 +103,10 @@ def result_to_html(
     result: Result,
     *,
     header_path: str | Path | None = None,
+    options: RenderOptions | None = None,
 ) -> str | None:
     return markdown_to_html(
-        result_to_markdown(result),
+        result_to_markdown(result, options=options),
         header_path=header_path,
     )
 

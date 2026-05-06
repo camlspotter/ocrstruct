@@ -13,11 +13,14 @@ from ocrstruct.image_understanding import (
     ScreeningRunView,
     ScreeningSource,
     UnderstandingRecord,
+    UnderstandingRunView,
     iter_understanding_records_from_screening,
     load_completed_understanding_keys,
     load_image_refs_from_middle_json,
     load_pricing_overrides,
     load_screening_records_jsonl,
+    load_understanding_records_jsonl,
+    merge_understanding_into_middle,
 )
 from ocrstruct.middle import Block, Line, Middle, PageInfo, Result, Span
 
@@ -105,6 +108,51 @@ def test_load_completed_understanding_keys_keeps_success_rows_only(tmp_path: Pat
     keys = load_completed_understanding_keys(path)
 
     assert len(keys) == 1
+
+
+def test_load_understanding_records_jsonl_filters_failed_rows(tmp_path: Path) -> None:
+    screening_record = _screening_record()
+    assert screening_record.run is not None
+    success = UnderstandingRecord(
+        ref=screening_record.ref,
+        screening=ScreeningSource(
+            model=screening_record.model,
+            thinking=screening_record.thinking,
+            resolved_thinking=screening_record.resolved_thinking,
+            base_url=screening_record.base_url,
+            started_at=screening_record.started_at,
+            latency_sec=screening_record.latency_sec,
+            run=screening_record.run,
+        ),
+        model="understanding-model",
+        thinking=False,
+        resolved_thinking=False,
+        base_url=None,
+        started_at="2026-05-01T00:00:01+00:00",
+        latency_sec=2.0,
+        status=RunStatus(ok=True),
+        run=UnderstandingRunView(
+            kind="diagram",
+            rag_value="high",
+            detail_level="short",
+            keywords=["k"],
+            notes=None,
+            short_description="short",
+            long_description=None,
+            raw_text='{"keywords":["k"]}',
+        ),
+    )
+    failed = success.model_copy(update={"status": RunStatus(ok=False, error="boom"), "run": None})
+    path = tmp_path / "understanding.jsonl"
+    path.write_text(
+        "\n".join([success.model_dump_json(), failed.model_dump_json()]),
+        encoding="utf-8",
+    )
+
+    records = load_understanding_records_jsonl(path)
+
+    assert len(records) == 1
+    assert records[0].model == "understanding-model"
 
 
 def test_iter_understanding_records_from_screening_skips_existing_and_yields_success(
@@ -225,3 +273,66 @@ def test_load_image_refs_from_middle_json_reads_result_wrapper(tmp_path: Path) -
     assert refs[0].middle_json_path == str(middle_path)
     assert refs[0].image_path == "sample.png"
     assert refs[0].block_index == 7
+
+
+def test_merge_understanding_into_middle_attaches_summary_to_image_span() -> None:
+    screening_record = _screening_record()
+    assert screening_record.run is not None
+    understanding_record = UnderstandingRecord(
+        ref=screening_record.ref,
+        screening=ScreeningSource(
+            model=screening_record.model,
+            thinking=screening_record.thinking,
+            resolved_thinking=screening_record.resolved_thinking,
+            base_url=screening_record.base_url,
+            started_at=screening_record.started_at,
+            latency_sec=screening_record.latency_sec,
+            run=screening_record.run,
+        ),
+        model="understanding-model",
+        thinking=False,
+        resolved_thinking=False,
+        base_url=None,
+        started_at="2026-05-01T00:00:02+00:00",
+        latency_sec=1.5,
+        status=RunStatus(ok=True),
+        run=UnderstandingRunView(
+            kind="diagram",
+            rag_value="high",
+            detail_level="short",
+            keywords=["workflow"],
+            notes="readable",
+            short_description="図の説明",
+            long_description=None,
+            raw_text='{"keywords":["workflow"]}',
+        ),
+    )
+    middle = Middle(
+        pdf_info=[
+            PageInfo(
+                page_idx=0,
+                page_size=(100, 100),
+                para_blocks=[
+                    Block(
+                        type="image",
+                        index=1,
+                        blocks=[
+                            Block(
+                                type="image_body",
+                                lines=[Line(spans=[Span(type="image", image_path="sample.png")])],
+                            )
+                        ],
+                    )
+                ],
+            )
+        ]
+    )
+
+    merged = merge_understanding_into_middle(middle, [understanding_record])
+
+    target_span = merged.pdf_info[0].para_blocks[0].blocks[0].lines[0].spans[0]
+    assert target_span.image_understanding is not None
+    assert target_span.image_understanding.short_description == "図の説明"
+    assert target_span.image_understanding.model == "understanding-model"
+    assert target_span.image_understanding.screening_model == "screening-model"
+    assert middle.pdf_info[0].para_blocks[0].blocks[0].lines[0].spans[0].image_understanding is None

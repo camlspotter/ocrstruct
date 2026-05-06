@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Literal
 from typing import NamedTuple
 from typing import Any
-from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
 from mineru.backend.hybrid.hybrid_analyze import doc_analyze as hybrid_doc_analyze
@@ -31,11 +30,6 @@ from ocrstruct.utils import BaseModelWithSave, load_json, save_json
 
 
 logger = logging.getLogger(__name__)
-
-
-if TYPE_CHECKING:
-    from ocrstruct.types import Element
-
 
 class LinkRegion(BaseModelWithSave):
     page_idx: int
@@ -359,39 +353,3 @@ def _convert_pdf_to_middle_impl(
     res.save_json(middle_path)
     logger.info(f"MinerU middle_json saved: {middle_path}")
     return res
-
-def convert_pdf_to_elements(
-    pdf_path: str,
-    *,
-    outdir: str,
-    backend: str | None = None,
-    method: str | None = None,
-    lang: str | None = None,
-    server_url: str | None = None,
-    seal_enable: bool = True,
-    formula_enable: bool = True,
-    lazy: bool = False,
-) -> list[Element]:
-    from ocrstruct.middle_to_elements import middle_to_elements
-    from ocrstruct.types import Element
-
-    elements_json_path = Path(outdir) / "elements.json"
-    elements: list[Element] | None = None
-    if lazy and os.path.exists(elements_json_path):
-        if elements := load_json(list[Element], elements_json_path):
-            return elements
-    result = convert_pdf_to_middle(
-        pdf_path,
-        outdir=outdir,
-        backend=backend,
-        method=method,
-        lang=lang,
-        server_url=server_url,
-        seal_enable=seal_enable,
-        formula_enable=formula_enable,
-        lazy=lazy,
-    )
-    elements = middle_to_elements(result.middle_json.model_dump(by_alias=True))
-    assert elements
-    save_json(list[Element], elements_json_path, elements)
-    return elements

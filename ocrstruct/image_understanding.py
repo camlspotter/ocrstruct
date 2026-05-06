@@ -13,7 +13,7 @@ from typing import Any, Iterable, Literal, TypeAlias, cast
 from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ocrstruct.middle import Block, Middle, Result, normalize_text
+from ocrstruct.middle import Block, ImageUnderstandingSummary, Middle, Result, Span, normalize_text
 from ocrstruct.utils import BaseModelWithSave
 
 
@@ -1250,6 +1250,113 @@ def load_completed_understanding_keys(path: str | Path) -> set[UnderstandingReco
             continue
         completed.add(understanding_record_key(record))
     return completed
+
+
+def load_understanding_records_jsonl(
+    path: str | Path,
+    *,
+    only_success: bool = True,
+) -> list[UnderstandingRecord]:
+    out: list[UnderstandingRecord] = []
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = UnderstandingRecord.model_validate_json(line)
+        if only_success and (not record.status.ok or record.run is None):
+            continue
+        out.append(record)
+    return out
+
+
+def merge_understanding_into_middle(
+    middle: Middle,
+    records: Iterable[UnderstandingRecord],
+) -> Middle:
+    record_by_ref: dict[tuple[int, int | None, str], UnderstandingRecord] = {}
+    for record in records:
+        if not record.status.ok or record.run is None:
+            continue
+        key = (
+            record.ref.page_idx,
+            record.ref.block_index,
+            record.ref.image_path,
+        )
+        record_by_ref[key] = record
+
+    merged = middle.model_copy(deep=True)
+    for page in merged.pdf_info:
+        for block in page.para_blocks:
+            _merge_understanding_into_block(
+                block,
+                page_idx=page.page_idx,
+                record_by_ref=record_by_ref,
+            )
+        for block in page.discarded_blocks:
+            _merge_understanding_into_block(
+                block,
+                page_idx=page.page_idx,
+                record_by_ref=record_by_ref,
+            )
+        for block in page.preproc_blocks:
+            _merge_understanding_into_block(
+                block,
+                page_idx=page.page_idx,
+                record_by_ref=record_by_ref,
+            )
+    return merged
+
+
+def _merge_understanding_into_block(
+    block: Block,
+    *,
+    page_idx: int,
+    record_by_ref: dict[tuple[int, int | None, str], UnderstandingRecord],
+    owner_block_index: int | None = None,
+) -> None:
+    current_block_index = block.index if block.index is not None else owner_block_index
+    for line in block.lines:
+        for span in line.spans:
+            _merge_understanding_into_span(
+                span,
+                page_idx=page_idx,
+                block_index=current_block_index,
+                record_by_ref=record_by_ref,
+            )
+    for child in block.blocks:
+        _merge_understanding_into_block(
+            child,
+            page_idx=page_idx,
+            record_by_ref=record_by_ref,
+            owner_block_index=current_block_index,
+        )
+
+
+def _merge_understanding_into_span(
+    span: Span,
+    *,
+    page_idx: int,
+    block_index: int | None,
+    record_by_ref: dict[tuple[int, int | None, str], UnderstandingRecord],
+) -> None:
+    if span.image_path is None:
+        return
+    record = record_by_ref.get((page_idx, block_index, span.image_path))
+    if record is None or record.run is None:
+        return
+    span.image_understanding = ImageUnderstandingSummary(
+        kind=record.run.kind,
+        rag_value=record.run.rag_value,
+        detail_level=record.run.detail_level,
+        keywords=record.run.keywords,
+        notes=record.run.notes,
+        short_description=record.run.short_description,
+        long_description=record.run.long_description,
+        model=record.model,
+        thinking=record.thinking,
+        screening_model=record.screening.model,
+        screening_thinking=record.screening.thinking,
+        status_ok=record.status.ok,
+    )
 
 
 def iter_understanding_records_from_screening(
