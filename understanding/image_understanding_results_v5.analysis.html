@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>image understanding analysis</title>
+  <style>
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      line-height: 1.45;
+      margin: 24px auto 48px;
+      max-width: 1400px;
+      padding: 0 20px;
+      color: #222;
+    }
+    h1, h2 {
+      line-height: 1.2;
+    }
+    .meta {
+      color: #555;
+      margin-bottom: 18px;
+    }
+    .highlights {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin: 18px 0 24px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fafafa;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 10px;
+      vertical-align: top;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+    th {
+      background: #f3f4f6;
+      text-align: left;
+      position: sticky;
+      top: 0;
+    }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>image understanding analysis</h1>
+  <div class="meta">元ファイル: /Users/jun/mocrdown/understanding/image_understanding_results_v5.jsonl</div>
+  <div class="highlights">
+    <div class="card">対象レコード数: 424</div><div class="card">比較モデル数: 4</div><div class="card">成功率最高: Qwen/Qwen3.6-27B-FP8 [thinking=false] (100.0%)</div><div class="card">平均レイテンシ最速: gpt-5.4 [thinking=false] (4.28s)</div><div class="card">平均コスト最安: Qwen/Qwen3.6-27B-FP8 [thinking=false] ($0.0000)</div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 220px;">model</th>
+          <th>total</th>
+          <th>ok</th>
+          <th>failed</th>
+          <th>ok rate</th>
+          <th>avg latency</th>
+          <th>median latency</th>
+          <th>max latency</th>
+          <th>avg cost</th>
+          <th>total cost</th>
+          <th>input tokens</th>
+          <th>output tokens</th>
+          <th style="width: 150px;">detail levels</th>
+          <th style="width: 320px;">top errors</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Qwen/Qwen3.6-27B-FP8 [thinking=false]</td><td>106</td><td>106</td><td>0</td><td>100.0%</td><td>32.21s</td><td>35.80s</td><td>92.36s</td><td>$0.0000</td><td>$0.0000</td><td>132028</td><td>26447</td><td>extract_text:39, skip:24, long:23, short:20</td><td>-</td></tr>
+<tr><td>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=false]</td><td>106</td><td>106</td><td>0</td><td>100.0%</td><td>10.04s</td><td>4.78s</td><td>605.70s</td><td>$0.0000</td><td>$0.0000</td><td>132028</td><td>21423</td><td>extract_text:39, skip:24, long:23, short:20</td><td>-</td></tr>
+<tr><td>google/gemma-4-26B-A4B-it [thinking=false]</td><td>106</td><td>106</td><td>0</td><td>100.0%</td><td>4.82s</td><td>5.76s</td><td>9.44s</td><td>$0.0000</td><td>$0.0000</td><td>73777</td><td>18907</td><td>extract_text:39, skip:24, long:23, short:20</td><td>-</td></tr>
+<tr><td>gpt-5.4 [thinking=false]</td><td>106</td><td>106</td><td>0</td><td>100.0%</td><td>4.28s</td><td>4.79s</td><td>10.13s</td><td>$0.0074</td><td>$0.782</td><td>149113</td><td>27275</td><td>extract_text:39, skip:24, long:23, short:20</td><td>-</td></tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

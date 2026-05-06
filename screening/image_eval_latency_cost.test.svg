@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560">
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;fill:#222} .small{font-size:11px} .axis{stroke:#666;stroke-width:1} .grid{stroke:#ddd;stroke-width:1} .pt{fill:#2f6db3}</style>
+<text x="500.0" y="28" text-anchor="middle" font-size="20">コストとレイテンシ</text>
+<line class="grid" x1="90" y1="50.0" x2="960" y2="50.0"/>
+<text class="small" x="82" y="54.0" text-anchor="end">0.0082</text>
+<line class="grid" x1="90" y1="128.0" x2="960" y2="128.0"/>
+<text class="small" x="82" y="132.0" text-anchor="end">0.0066</text>
+<line class="grid" x1="90" y1="206.0" x2="960" y2="206.0"/>
+<text class="small" x="82" y="210.0" text-anchor="end">0.0049</text>
+<line class="grid" x1="90" y1="284.0" x2="960" y2="284.0"/>
+<text class="small" x="82" y="288.0" text-anchor="end">0.0033</text>
+<line class="grid" x1="90" y1="362.0" x2="960" y2="362.0"/>
+<text class="small" x="82" y="366.0" text-anchor="end">0.0016</text>
+<line class="grid" x1="90" y1="440.0" x2="960" y2="440.0"/>
+<text class="small" x="82" y="444.0" text-anchor="end">0.0000</text>
+<line class="grid" x1="90.0" y1="50" x2="90.0" y2="440"/>
+<text class="small" x="90.0" y="458" text-anchor="middle">0.0</text>
+<line class="grid" x1="264.0" y1="50" x2="264.0" y2="440"/>
+<text class="small" x="264.0" y="458" text-anchor="middle">37.8</text>
+<line class="grid" x1="438.0" y1="50" x2="438.0" y2="440"/>
+<text class="small" x="438.0" y="458" text-anchor="middle">75.6</text>
+<line class="grid" x1="612.0" y1="50" x2="612.0" y2="440"/>
+<text class="small" x="612.0" y="458" text-anchor="middle">113.5</text>
+<line class="grid" x1="786.0" y1="50" x2="786.0" y2="440"/>
+<text class="small" x="786.0" y="458" text-anchor="middle">151.3</text>
+<line class="grid" x1="960.0" y1="50" x2="960.0" y2="440"/>
+<text class="small" x="960.0" y="458" text-anchor="middle">189.1</text>
+<line class="axis" x1="90" y1="440" x2="960" y2="440"/>
+<line class="axis" x1="90" y1="50" x2="90" y2="440"/>
+<text x="500.0" y="536" text-anchor="middle">平均レイテンシ (秒/画像)</text>
+<text x="24" y="280.0" text-anchor="middle" transform="rotate(-90 24 280.0)">平均コスト (USD/画像)</text>
+<circle class="pt" cx="895.6" cy="440.0" r="5"/>
+<text class="small" x="902.6" y="433.0">Qwen3.6-27B-FP8</text>
+<circle class="pt" cx="124.4" cy="440.0" r="5"/>
+<text class="small" x="131.4" y="433.0">Qwen3.6-27B-FP8 [thinking=false]</text>
+<circle class="pt" cx="214.3" cy="440.0" r="5"/>
+<text class="small" x="221.3" y="433.0">Qwen3.6-35B-A3B-FP8</text>
+<circle class="pt" cx="97.2" cy="440.0" r="5"/>
+<text class="small" x="104.2" y="433.0">Qwen3.6-35B-A3B-FP8 [thinking=false]</text>
+<circle class="pt" cx="132.1" cy="100.9" r="5"/>
+<text class="small" x="139.1" y="93.9">gpt-5</text>
+<circle class="pt" cx="129.5" cy="380.5" r="5"/>
+<text class="small" x="136.5" y="373.5">gpt-5-mini</text>
+<circle class="pt" cx="143.7" cy="412.9" r="5"/>
+<text class="small" x="150.7" y="405.9">gpt-5-nano</text>
+<circle class="pt" cx="103.7" cy="274.7" r="5"/>
+<text class="small" x="110.7" y="267.7">gpt-5.2</text>
+<circle class="pt" cx="101.1" cy="223.8" r="5"/>
+<text class="small" x="108.1" y="216.8">gpt-5.4</text>
+<circle class="pt" cx="98.1" cy="376.6" r="5"/>
+<text class="small" x="105.1" y="369.6">gpt-5.4-mini</text>
+<circle class="pt" cx="102.7" cy="422.1" r="5"/>
+<text class="small" x="109.7" y="415.1">gpt-5.4-nano</text>
+</svg>

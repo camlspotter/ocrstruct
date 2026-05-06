@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>画像評価分析</title>
+<style>body{font-family:Helvetica,Arial,sans-serif;line-height:1.5;max-width:980px;margin:32px auto;padding:0 20px;color:#222}img{max-width:100%;height:auto;border:1px solid #ddd}table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #ddd;padding:8px;vertical-align:top}th{background:#f5f5f5}code{background:#f3f3f3;padding:1px 4px;border-radius:3px}h1,h2{line-height:1.2}</style>
+</head>
+<body>
+<h1>画像評価分析</h1>
+
+
+<h2>概要</h2>
+
+<ul>
+<li>画像数: 106</li>
+<li>モデル: gpt-5-nano, gpt-5-mini, gpt-5, gpt-5.2, gpt-5.4</li>
+<li>結果行数: 530</li>
+<li>すべての画像について、5モデル分の結果がちょうど1回ずつ揃っています。</li>
+</ul>
+
+<h2>主な所見</h2>
+
+<ul>
+<li><code>gpt-5.2</code> と <code>gpt-5.4</code> が今回もっとも高速で、平均レイテンシはそれぞれ 2.48 秒、1.88 秒でした。</li>
+<li><code>gpt-5-nano</code> は 1 画像あたり約 $0.0006 と最安でしたが、大きいモデル群とのズレも最も大きくなりました。</li>
+<li><code>gpt-5.2</code> と <code>gpt-5.4</code> が全体として最も近く、<code>kind + rag_value + detail_level</code> の完全一致率は 55.7% でした。</li>
+<li><code>kind</code> は比較的安定しており、おおむね 82%〜95% の一致率でした。一方で <code>detail_level</code> は 44%〜75% とかなり揺れます。</li>
+<li><code>gpt-5</code> は <code>extract_text</code> を最も積極的に使い（106 件中 62 件）、<code>gpt-5.4</code> は <code>long</code> をより多く使っています（106 件中 28 件）。</li>
+<li><code>gpt-5-nano</code> は、小さなアイコン、QR コード、ページ断片に対して <code>text_as_image</code> や <code>table_or_form</code> を過剰に付ける傾向がありました。</li>
+</ul>
+
+<h2>読み方の注意</h2>
+
+<ul>
+<li>この評価にはまだ正解ラベルがありません。最終的な精度順位ではなく、モデル挙動の比較として読むのが適切です。</li>
+<li>コストはローカルの画像サイズではなく API の <code>usage</code> から推定しています。この GPT-5 系 vision 設定では、それが比較の正しい基準です。</li>
+<li>今回もっとも意外だったのは、安いモデルほど遅かったことです。これは実測結果ですが、再測定なしに一般法則とみなすべきではありません。</li>
+<li>OpenAI の公開ガイダンスでは、新しい小型モデルは通常 low-latency 側に位置づけられています。特に <code>gpt-5.4-mini</code> と <code>gpt-5.4-nano</code> で再検証する価値があります。</li>
+<li><code>gpt-5</code> の pricing は公式価格表で再確認済みです。今回の総コストが高いのは pricing バグではなく token usage の多さによるものです。</li>
+</ul>
+
+<h2>コストとレイテンシ</h2>
+
+<p><img src="image_eval_latency_cost.svg" alt="chart"></p>
+
+<ul>
+<li><code>gpt-5</code> は特に注意が必要です。pricing 設定は正しい一方で、実測 token usage が多く、今回の run では <code>gpt-5.2</code> より高コストになりました。</li>
+<li>costing は <code>usage</code> ベースなので、API が信頼できる usage を返す限り、画像サイズを別途手調整する必要はありません。</li>
+</ul>
+
+
+<h2>detail_level の傾向</h2>
+
+<p><img src="image_eval_detail_distribution.svg" alt="chart"></p>
+
+
+
+<ul>
+<li><code>gpt-5</code> はほぼ二極的で、<code>extract_text</code> と <code>skip</code> が多く、中間的な判断が少ないです。</li>
+<li><code>gpt-5.4</code> は <code>long</code> を他モデルよりかなり多く使います。後段でより丁寧な enrichment をしたいなら有利かもしれません。</li>
+<li><code>gpt-5-nano</code> は、他モデルが <code>skip</code> や <code>long</code> / <code>extract_text</code> を選ぶ場面で <code>short</code> に寄る傾向があります。</li>
+</ul>
+
+<h2>一致率</h2>
+
+<p><img src="image_eval_agreement_heatmap.svg" alt="chart"></p>
+
+
+
+<ul>
+<li>主に <code>kind</code> だけを見たいなら、このモデル群はすでにかなり一貫しています。</li>
+<li>後段の作業計画まで気にするなら、注目すべき軸は <code>detail_level</code> です。モデル差の多くはここから来ています。</li>
+<li><code>gpt-5.2</code> は現時点で最も良い基準点に見えます。<code>gpt-5.4</code> に近く、それでいて安価です。</li>
+</ul>
+
+<ul>
+<li>後段パイプラインが画像タイプの粗い振り分けだけを必要とするなら、複数モデルが実用候補になります。</li>
+<li>後段コストが OCR や詳細抽出を行うかどうかで決まるなら、<code>kind</code> より <code>detail_level</code> の不一致のほうが重要です。</li>
+</ul>
+
+<h2>食い違いの大きい例</h2>
+
+
+
+<ul>
+<li>小さな矢印やチェックマークは、切り出しが曖昧だと周辺の大きな構造物と誤認されることがあります。</li>
+<li>QR コードはモデル間で大きく割れます。低価値なマークと見るものもあれば、読み取り価値のある情報資産と見るものもあります。</li>
+<li>周辺に少しだけテキストを伴う装飾イラストは、特に <code>gpt-5-nano</code> で不安定です。</li>
+</ul>
+
+<h2>推奨</h2>
+
+<ol>
+<li>当面の標準基準は <code>gpt-5.2</code> にするのがよさそうです。今回の run では高速で、<code>gpt-5.4</code> にかなり近く、それより明確に安価です。</li>
+<li>境界事例の確認や、より豊かな <code>detail_level</code> 判断がほしい場合は <code>gpt-5.4</code> を spot check 用に残すのがよいです。</li>
+<li>微妙な差よりコストを優先するなら <code>gpt-5-mini</code> が有力です。少なくとも <code>kind</code> については <code>gpt-5</code> / <code>gpt-5.2</code> に比較的よく追随しています。</li>
+<li>QR コード、アイコン、小断片に対する二段目フィルタを入れない限り、このタスクで <code>gpt-5-nano</code> を唯一の分類器にするのは避けたほうがよさそうです。</li>
+</ol>
+
+<h2>次の一手</h2>
+
+<ol>
+<li>まず、食い違いの大きかった画像から小さな gold set を作る。</li>
+<li>レイテンシについて強い結論を出す前に、少なくとももう一度は再測定する。</li>
+<li>OpenAI は <code>gpt-5.4-mini</code> と <code>gpt-5.4-nano</code> を低レイテンシ寄りの新しい小型モデルとして位置づけているので、次の比較に加える。</li>
+</ol>
+
+<p>表を含む完全版は Markdown レポートを参照: <a href="image_eval_analysis.md" target="_blank" rel="noopener noreferrer">image_eval_analysis.md</a></p>
+</body>
+</html>

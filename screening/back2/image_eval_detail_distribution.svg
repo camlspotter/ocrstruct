@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="454" viewBox="0 0 920 454">
+<rect width="100%" height="100%" fill="white"/>
+<text x="460.0" y="26" font-size="18" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">detail_level 分布</text>
+<text x="110" y="65" font-size="13" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5</text>
+<rect x="120.0" y="45" width="229.4" height="30" fill="#c7c7c7"/>
+<text x="234.7169811320755" y="65" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">32</text>
+<rect x="349.4" y="45" width="43.0" height="30" fill="#8dd3c7"/>
+<text x="370.94339622641513" y="65" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">6</text>
+<rect x="392.5" y="45" width="43.0" height="30" fill="#80b1d3"/>
+<text x="413.96226415094344" y="65" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">6</text>
+<rect x="435.5" y="45" width="444.5" height="30" fill="#fb8072"/>
+<text x="657.7358490566038" y="65" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">62</text>
+<text x="110" y="113" font-size="13" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5-mini</text>
+<rect x="120.0" y="93" width="157.7" height="30" fill="#c7c7c7"/>
+<text x="198.8679245283019" y="113" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">22</text>
+<rect x="277.7" y="93" width="129.1" height="30" fill="#8dd3c7"/>
+<text x="342.26415094339626" y="113" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">18</text>
+<rect x="406.8" y="93" width="7.2" height="30" fill="#80b1d3"/>
+<rect x="414.0" y="93" width="466.0" height="30" fill="#fb8072"/>
+<text x="646.9811320754718" y="113" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">65</text>
+<text x="110" y="161" font-size="13" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5-nano</text>
+<rect x="120.0" y="141" width="64.5" height="30" fill="#c7c7c7"/>
+<text x="152.26415094339623" y="161" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">9</text>
+<rect x="184.5" y="141" width="250.9" height="30" fill="#8dd3c7"/>
+<text x="310.0" y="161" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">35</text>
+<rect x="435.5" y="141" width="0.0" height="30" fill="#80b1d3"/>
+<rect x="435.5" y="141" width="444.5" height="30" fill="#fb8072"/>
+<text x="657.7358490566038" y="161" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">62</text>
+<text x="110" y="209" font-size="13" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.2</text>
+<rect x="120.0" y="189" width="186.4" height="30" fill="#c7c7c7"/>
+<text x="213.20754716981133" y="209" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">26</text>
+<rect x="306.4" y="189" width="150.6" height="30" fill="#8dd3c7"/>
+<text x="381.6981132075472" y="209" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">21</text>
+<rect x="457.0" y="189" width="93.2" height="30" fill="#80b1d3"/>
+<text x="503.58490566037733" y="209" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">13</text>
+<rect x="550.2" y="189" width="329.8" height="30" fill="#fb8072"/>
+<text x="715.0943396226414" y="209" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">46</text>
+<text x="110" y="257" font-size="13" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.4</text>
+<rect x="120.0" y="237" width="179.2" height="30" fill="#c7c7c7"/>
+<text x="209.62264150943395" y="257" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">25</text>
+<rect x="299.2" y="237" width="121.9" height="30" fill="#8dd3c7"/>
+<text x="360.18867924528297" y="257" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">17</text>
+<rect x="421.1" y="237" width="200.8" height="30" fill="#80b1d3"/>
+<text x="521.5094339622641" y="257" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">28</text>
+<rect x="621.9" y="237" width="258.1" height="30" fill="#fb8072"/>
+<text x="750.9433962264151" y="257" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">36</text>
+<text x="110" y="305" font-size="13" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.4-mini</text>
+<rect x="120.0" y="285" width="207.9" height="30" fill="#c7c7c7"/>
+<text x="223.96226415094338" y="305" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">29</text>
+<rect x="327.9" y="285" width="344.2" height="30" fill="#8dd3c7"/>
+<text x="500.0" y="305" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">48</text>
+<rect x="672.1" y="285" width="164.9" height="30" fill="#80b1d3"/>
+<text x="754.5283018867925" y="305" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">23</text>
+<rect x="837.0" y="285" width="43.0" height="30" fill="#fb8072"/>
+<text x="858.4905660377358" y="305" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">6</text>
+<text x="110" y="353" font-size="13" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.4-nano</text>
+<rect x="120.0" y="333" width="172.1" height="30" fill="#c7c7c7"/>
+<text x="206.03773584905662" y="353" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">24</text>
+<rect x="292.1" y="333" width="215.1" height="30" fill="#8dd3c7"/>
+<text x="399.622641509434" y="353" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">30</text>
+<rect x="507.2" y="333" width="93.2" height="30" fill="#80b1d3"/>
+<text x="553.7735849056604" y="353" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">13</text>
+<rect x="600.4" y="333" width="279.6" height="30" fill="#fb8072"/>
+<text x="740.1886792452831" y="353" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">39</text>
+<rect x="120" y="422" width="14" height="14" fill="#c7c7c7"/>
+<text x="140" y="434" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">skip</text>
+<rect x="260" y="422" width="14" height="14" fill="#8dd3c7"/>
+<text x="280" y="434" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">short</text>
+<rect x="400" y="422" width="14" height="14" fill="#80b1d3"/>
+<text x="420" y="434" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">long</text>
+<rect x="540" y="422" width="14" height="14" fill="#fb8072"/>
+<text x="560" y="434" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">extract_text</text>
+</svg>

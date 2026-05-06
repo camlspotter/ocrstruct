@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>画像評価分析</title>
+<style>body{font-family:Helvetica,Arial,sans-serif;line-height:1.6;max-width:1000px;margin:32px auto;padding:0 20px;color:#222}img{max-width:100%;height:auto;border:1px solid #ddd}table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}th,td{border:1px solid #ddd;padding:8px;vertical-align:top}th{background:#f5f5f5}code{background:#f3f3f3;padding:1px 4px;border-radius:3px}h1,h2{line-height:1.2}ul,ol{padding-left:24px}</style>
+</head>
+<body>
+<h1>画像評価分析</h1>
+<p>元データ: `image_eval_results.jsonl`</p>
+<h2>概要</h2>
+<ul>
+<li>画像数: 106</li>
+<li>モデル: gpt-5, gpt-5-mini, gpt-5-nano, gpt-5.2, gpt-5.4, gpt-5.4-mini, gpt-5.4-nano</li>
+<li>結果行数: 742</li>
+<li>すべての画像について、全モデル分の結果がちょうど1回ずつ揃っているデータだけを対象に集計しています。</li>
+</ul>
+<h2>主な所見</h2>
+<ul>
+<li>今回の run で最速だったのは <code>gpt-5.4-mini</code> で、平均レイテンシは 1.46 秒でした。</li>
+<li>最安だったのは <code>gpt-5.4-nano</code> で、1画像あたり平均コストは $0.0004 でした。</li>
+<li>全体として最も近いペアは <code>gpt-5</code> と <code>gpt-5-mini</code> で、<code>kind + rag_value + detail_level</code> の完全一致率は 59.4% でした。</li>
+<li>逆に最も離れていたペアは <code>gpt-5</code> と <code>gpt-5.4-mini</code> で、完全一致率は 12.3% でした。</li>
+<li><code>kind</code> はモデル間で比較的安定していますが、<code>detail_level</code> はかなり揺れます。今回のペア一致率では、<code>kind</code> はおおむね 81.1%〜95.3%、<code>detail_level</code> は 30.2%〜75.5% でした。</li>
+</ul>
+<h2>読み方の注意</h2>
+<ul>
+<li>この評価にはまだ正解ラベルがありません。したがって、このレポートは最終的な精度順位ではなく、モデル挙動の比較として読むのが適切です。</li>
+<li>コストはローカルの画像サイズではなく API の <code>usage</code> フィールドから推定しています。課金比較としては、これを基準にするのが実務上もっとも自然です。</li>
+<li>今回は安いモデルほど遅い傾向が出ていますが、これはこの run の実測結果であり、一般法則とみなすべきではありません。</li>
+<li>OpenAI の公開ガイダンスでは、新しい小型モデルは low-latency 側に位置づけられることが多いため、レイテンシは再測定しながら判断するのが安全です。</li>
+</ul>
+<h2>コストとレイテンシ</h2>
+<p><img src="image_eval_latency_cost.svg" alt="chart"></p>
+<table>
+<tr><th>モデル</th><th>平均レイテンシ</th><th>中央レイテンシ</th><th>1画像あたり平均コスト</th><th>このセット合計コスト</th></tr>
+<tr><td><code>gpt-5</code></td><td>9.47s</td><td>9.18s</td><td>$0.0068</td><td>$0.724</td></tr>
+<tr><td><code>gpt-5-mini</code></td><td>8.01s</td><td>7.88s</td><td>$0.0012</td><td>$0.131</td></tr>
+<tr><td><code>gpt-5-nano</code></td><td>11.57s</td><td>11.05s</td><td>$0.0006</td><td>$0.062</td></tr>
+<tr><td><code>gpt-5.2</code></td><td>2.48s</td><td>2.23s</td><td>$0.0033</td><td>$0.353</td></tr>
+<tr><td><code>gpt-5.4</code></td><td>1.88s</td><td>1.67s</td><td>$0.0044</td><td>$0.462</td></tr>
+<tr><td><code>gpt-5.4-mini</code></td><td>1.46s</td><td>1.26s</td><td>$0.0013</td><td>$0.135</td></tr>
+<tr><td><code>gpt-5.4-nano</code></td><td>2.04s</td><td>1.68s</td><td>$0.0004</td><td>$0.038</td></tr>
+</table>
+<p>補足:</p>
+<ul>
+<li><code>gpt-5</code> 系の価格設定は公式価格表に合わせて再確認済みです。したがって、コスト差の主因は pricing の設定ミスではなく、実際の token usage の違いです。</li>
+<li>image size を別途手計算する必要はなく、API が返す <code>usage</code> を信じてよい設計になっています。</li>
+</ul>
+<h2>detail_level の傾向</h2>
+<p><img src="image_eval_detail_distribution.svg" alt="chart"></p>
+<table>
+<tr><th>モデル</th><th>skip</th><th>short</th><th>long</th><th>extract_text</th></tr>
+<tr><td><code>gpt-5</code></td><td>32</td><td>6</td><td>6</td><td>62</td></tr>
+<tr><td><code>gpt-5-mini</code></td><td>22</td><td>18</td><td>1</td><td>65</td></tr>
+<tr><td><code>gpt-5-nano</code></td><td>9</td><td>35</td><td>0</td><td>62</td></tr>
+<tr><td><code>gpt-5.2</code></td><td>26</td><td>21</td><td>13</td><td>46</td></tr>
+<tr><td><code>gpt-5.4</code></td><td>25</td><td>17</td><td>28</td><td>36</td></tr>
+<tr><td><code>gpt-5.4-mini</code></td><td>29</td><td>48</td><td>23</td><td>6</td></tr>
+<tr><td><code>gpt-5.4-nano</code></td><td>24</td><td>30</td><td>13</td><td>39</td></tr>
+</table>
+<p>解釈:</p>
+<ul>
+<li><code>extract_text</code> を最も多く選んだのは <code>gpt-5-mini</code>` です。</li>
+<li><code>long</code> を最も多く選んだのは `gpt-5.4` です。後段でより丁寧な enrichment をしたいなら注目候補です。</li>
+<li><code>skip</code> を最も多く選んだのは `gpt-5` で、より保守的なふるまいをしていると言えます。</li>
+</ul>
+<h2>一致率</h2>
+<p><img src="image_eval_agreement_heatmap.svg" alt="chart"></p>
+<table>
+<tr><th>ペア</th><th>kind 一致率</th><th>rag 一致率</th><th>detail 一致率</th><th>3項目完全一致率</th></tr>
+<tr><td><code>gpt-5</code> vs <code>gpt-5-mini</code></td><td>94.3%</td><td>72.6%</td><td>75.5%</td><td>59.4%</td></tr>
+<tr><td><code>gpt-5</code> vs <code>gpt-5-nano</code></td><td>83.0%</td><td>54.7%</td><td>51.9%</td><td>33.0%</td></tr>
+<tr><td><code>gpt-5</code> vs <code>gpt-5.2</code></td><td>91.5%</td><td>72.6%</td><td>68.9%</td><td>50.9%</td></tr>
+<tr><td><code>gpt-5</code> vs <code>gpt-5.4</code></td><td>93.4%</td><td>71.7%</td><td>66.0%</td><td>45.3%</td></tr>
+<tr><td><code>gpt-5</code> vs <code>gpt-5.4-mini</code></td><td>93.4%</td><td>65.1%</td><td>36.8%</td><td>12.3%</td></tr>
+<tr><td><code>gpt-5</code> vs <code>gpt-5.4-nano</code></td><td>84.9%</td><td>70.8%</td><td>57.5%</td><td>38.7%</td></tr>
+<tr><td><code>gpt-5-mini</code> vs <code>gpt-5-nano</code></td><td>82.1%</td><td>59.4%</td><td>57.5%</td><td>33.0%</td></tr>
+<tr><td><code>gpt-5-mini</code> vs <code>gpt-5.2</code></td><td>92.5%</td><td>78.3%</td><td>63.2%</td><td>52.8%</td></tr>
+<tr><td><code>gpt-5-mini</code> vs <code>gpt-5.4</code></td><td>91.5%</td><td>78.3%</td><td>54.7%</td><td>45.3%</td></tr>
+<tr><td><code>gpt-5-mini</code> vs <code>gpt-5.4-mini</code></td><td>94.3%</td><td>71.7%</td><td>33.0%</td><td>17.9%</td></tr>
+<tr><td><code>gpt-5-mini</code> vs <code>gpt-5.4-nano</code></td><td>86.8%</td><td>67.0%</td><td>49.1%</td><td>33.0%</td></tr>
+<tr><td><code>gpt-5-nano</code> vs <code>gpt-5.2</code></td><td>82.1%</td><td>61.3%</td><td>47.2%</td><td>30.2%</td></tr>
+<tr><td><code>gpt-5-nano</code> vs <code>gpt-5.4</code></td><td>83.0%</td><td>64.2%</td><td>44.3%</td><td>25.5%</td></tr>
+<tr><td><code>gpt-5-nano</code> vs <code>gpt-5.4-mini</code></td><td>81.1%</td><td>63.2%</td><td>30.2%</td><td>17.0%</td></tr>
+<tr><td><code>gpt-5-nano</code> vs <code>gpt-5.4-nano</code></td><td>82.1%</td><td>52.8%</td><td>49.1%</td><td>24.5%</td></tr>
+<tr><td><code>gpt-5.2</code> vs <code>gpt-5.4</code></td><td>95.3%</td><td>86.8%</td><td>64.2%</td><td>55.7%</td></tr>
+<tr><td><code>gpt-5.2</code> vs <code>gpt-5.4-mini</code></td><td>94.3%</td><td>79.2%</td><td>44.3%</td><td>33.0%</td></tr>
+<tr><td><code>gpt-5.2</code> vs <code>gpt-5.4-nano</code></td><td>86.8%</td><td>72.6%</td><td>54.7%</td><td>39.6%</td></tr>
+<tr><td><code>gpt-5.4</code> vs <code>gpt-5.4-mini</code></td><td>92.5%</td><td>84.9%</td><td>48.1%</td><td>39.6%</td></tr>
+<tr><td><code>gpt-5.4</code> vs <code>gpt-5.4-nano</code></td><td>84.9%</td><td>73.6%</td><td>46.2%</td><td>29.2%</td></tr>
+<tr><td><code>gpt-5.4-mini</code> vs <code>gpt-5.4-nano</code></td><td>88.7%</td><td>67.9%</td><td>50.0%</td><td>27.4%</td></tr>
+</table>
+<p>実務上の含意:</p>
+<ul>
+<li>後段パイプラインが画像タイプの粗い振り分けだけを必要とするなら、複数モデルが実用候補になります。</li>
+<li>後段コストの大半が OCR や詳細抽出を行うかどうかで決まるなら、<code>kind</code> より <code>detail_level</code> の不一致のほうが重要です。</li>
+</ul>
+<h2>食い違いの大きい例</h2>
+<table>
+<tr><th>画像</th><th>注目理由</th><th>各モデルの出力</th></tr>
+<tr><td><code>6e40acf242d69b693d9c44a0a6f65a7e763fe143459d1bfdd0acbe521493d60d.jpg</code></td><td>score=16</td><td><code>gpt-5</code>: arrow_only / none / skip<br><code>gpt-5-mini</code>: arrow_only / low / skip<br><code>gpt-5-nano</code>: table_or_form / high / extract_text<br><code>gpt-5.2</code>: diagram / medium / short<br><code>gpt-5.4</code>: arrow_only / low / skip<br><code>gpt-5.4-mini</code>: arrow_only / low / skip<br><code>gpt-5.4-nano</code>: table_or_form / high / extract_text</td></tr>
+<tr><td><code>fcf6def197c69632cba86a1f6016a6652a7ad3bf9590371765865c1a8bce36d7.jpg</code></td><td>score=14</td><td><code>gpt-5</code>: other / low / skip<br><code>gpt-5-mini</code>: logo_or_mark / high / extract_text<br><code>gpt-5-nano</code>: text_as_image / high / extract_text<br><code>gpt-5.2</code>: logo_or_mark / medium / short<br><code>gpt-5.4</code>: other / medium / short<br><code>gpt-5.4-mini</code>: logo_or_mark / low / skip<br><code>gpt-5.4-nano</code>: logo_or_mark / low / skip</td></tr>
+<tr><td><code>27d967c59825fa2ed7337de414a70602943058e8f6ca2b6cf23c080beb2d9926.jpg</code></td><td>score=14</td><td><code>gpt-5</code>: logo_or_mark / none / skip<br><code>gpt-5-mini</code>: decorative / none / skip<br><code>gpt-5-nano</code>: text_as_image / high / extract_text<br><code>gpt-5.2</code>: decorative / low / skip<br><code>gpt-5.4</code>: text_as_image / low / short<br><code>gpt-5.4-mini</code>: decorative / low / skip<br><code>gpt-5.4-nano</code>: decorative / low / skip</td></tr>
+<tr><td><code>5e7ee121f3a0c8267faf7048b26734814e3ef3060a51bec20168f6bd47e0d4aa.jpg</code></td><td>score=14</td><td><code>gpt-5</code>: text_as_image / high / extract_text<br><code>gpt-5-mini</code>: text_as_image / high / extract_text<br><code>gpt-5-nano</code>: text_as_image / high / extract_text<br><code>gpt-5.2</code>: ui_or_screenshot / medium / short<br><code>gpt-5.4</code>: text_as_image / medium / extract_text<br><code>gpt-5.4-mini</code>: decorative / low / skip<br><code>gpt-5.4-nano</code>: text_as_image / medium / extract_text</td></tr>
+<tr><td><code>5ed229306d91d3a34dbfd3f2882450047870904ec5f942ae3c25518265c348a4.jpg</code></td><td>score=13</td><td><code>gpt-5</code>: decorative / none / skip<br><code>gpt-5-mini</code>: decorative / none / skip<br><code>gpt-5-nano</code>: table_or_form / high / extract_text<br><code>gpt-5.2</code>: logo_or_mark / low / skip<br><code>gpt-5.4</code>: logo_or_mark / low / skip<br><code>gpt-5.4-mini</code>: table_or_form / high / extract_text<br><code>gpt-5.4-nano</code>: table_or_form / high / extract_text</td></tr>
+<tr><td><code>8d5d981863c3c4938f85a3826799cfb2cc2a85eb534becaf654344562b7fdabc.jpg</code></td><td>score=13</td><td><code>gpt-5</code>: other / low / skip<br><code>gpt-5-mini</code>: text_as_image / high / extract_text<br><code>gpt-5-nano</code>: text_as_image / medium / extract_text<br><code>gpt-5.2</code>: logo_or_mark / low / skip<br><code>gpt-5.4</code>: logo_or_mark / low / skip<br><code>gpt-5.4-mini</code>: logo_or_mark / low / skip<br><code>gpt-5.4-nano</code>: text_as_image / medium / extract_text</td></tr>
+<tr><td><code>72561ac4f39852747790b6e7a4feb85f24c15bfc24ad78422df13d16480e771d.jpg</code></td><td>score=13</td><td><code>gpt-5</code>: logo_or_mark / none / skip<br><code>gpt-5-mini</code>: logo_or_mark / low / skip<br><code>gpt-5-nano</code>: text_as_image / high / extract_text<br><code>gpt-5.2</code>: logo_or_mark / low / skip<br><code>gpt-5.4</code>: logo_or_mark / low / skip<br><code>gpt-5.4-mini</code>: logo_or_mark / low / skip<br><code>gpt-5.4-nano</code>: decorative / none / skip</td></tr>
+<tr><td><code>39854df2b18c6b9d6ad36fc1e9721d310c9a225b4dc19df684aa85aa6f05a8cd.jpg</code></td><td>score=12</td><td><code>gpt-5</code>: other / low / skip<br><code>gpt-5-mini</code>: other / medium / extract_text<br><code>gpt-5-nano</code>: text_as_image / low / extract_text<br><code>gpt-5.2</code>: diagram / medium / short<br><code>gpt-5.4</code>: diagram / medium / short<br><code>gpt-5.4-mini</code>: other / medium / short<br><code>gpt-5.4-nano</code>: other / medium / skip</td></tr>
+<tr><td><code>7b911190ae8a9a56bff1407119946d31b60ced88f8c4145d9549a6b068fe034c.jpg</code></td><td>score=11</td><td><code>gpt-5</code>: decorative / low / skip<br><code>gpt-5-mini</code>: decorative / none / skip<br><code>gpt-5-nano</code>: text_as_image / high / extract_text<br><code>gpt-5.2</code>: text_as_image / medium / extract_text<br><code>gpt-5.4</code>: text_as_image / medium / extract_text<br><code>gpt-5.4-mini</code>: decorative / low / skip<br><code>gpt-5.4-nano</code>: text_as_image / medium / extract_text</td></tr>
+<tr><td><code>ff453133061a974354db176e303c7912b78ff893c54bb0ba74cde8a41343a426.jpg</code></td><td>score=11</td><td><code>gpt-5</code>: logo_or_mark / none / skip<br><code>gpt-5-mini</code>: decorative / low / short<br><code>gpt-5-nano</code>: text_as_image / low / short<br><code>gpt-5.2</code>: logo_or_mark / low / skip<br><code>gpt-5.4</code>: logo_or_mark / low / skip<br><code>gpt-5.4-mini</code>: logo_or_mark / low / skip<br><code>gpt-5.4-nano</code>: logo_or_mark / none / skip</td></tr>
+</table>
+<p>目立つ傾向:</p>
+<ul>
+<li>小さな矢印やチェックマークは、切り出しが曖昧だと周辺の大きな構造物と誤認されることがあります。</li>
+<li>QR コードはモデル間で大きく割れます。低価値なマークと見るものもあれば、読み取り価値のある情報資産と見るものもあります。</li>
+<li>周辺に少しだけテキストを伴う装飾イラストや、小断片の crop は特に不安定です。</li>
+</ul>
+<h2>推奨</h2>
+<ol>
+<li>当面の標準基準は <code>gpt-5.2</code> にするのがよさそうです。コストと `gpt-5.4` への近さのバランスが最も良好です。</li>
+<li><code>gpt-5.4</code> は上限確認や borderline case の spot check 用に残すとよさそうです。</li>
+<li>最安の <code>gpt-5.4-nano</code> は一次ふるいには魅力がありますが、単独運用するなら食い違いの大きいパターンに対する二段目フィルタを用意したいです。</li>
+</ol>
+<h2>次の一手</h2>
+<ol>
+<li>まず、食い違いの大きかった画像から小さな gold set を作る。</li>
+<li>レイテンシについて強い結論を出す前に、少なくとももう一度は再測定する。</li>
+<li>必要なら <code>kind</code> ごと、<code>detail_level</code> ごとに人手レビューを足して、どの軸でモデルを選ぶかを明確にする。</li>
+</ol>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="620" viewBox="0 0 1300 620">
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;fill:#222} .small{font-size:11px} .axis{stroke:#666;stroke-width:1} .grid{stroke:#ddd;stroke-width:1}</style>
+<text x="650.0" y="28" text-anchor="middle" font-size="20">gold set 項目別スコア</text>
+<line class="grid" x1="70" y1="50.0" x2="1260" y2="50.0"/>
+<text class="small" x="62" y="54.0" text-anchor="end">1.0</text>
+<line class="grid" x1="70" y1="120.0" x2="1260" y2="120.0"/>
+<text class="small" x="62" y="124.0" text-anchor="end">0.8</text>
+<line class="grid" x1="70" y1="190.0" x2="1260" y2="190.0"/>
+<text class="small" x="62" y="194.0" text-anchor="end">0.6</text>
+<line class="grid" x1="70" y1="260.0" x2="1260" y2="260.0"/>
+<text class="small" x="62" y="264.0" text-anchor="end">0.4</text>
+<line class="grid" x1="70" y1="330.0" x2="1260" y2="330.0"/>
+<text class="small" x="62" y="334.0" text-anchor="end">0.2</text>
+<line class="grid" x1="70" y1="400.0" x2="1260" y2="400.0"/>
+<text class="small" x="62" y="404.0" text-anchor="end">0.0</text>
+<rect x="83.5" y="96.2" width="27.0" height="303.8" fill="#4c78a8" rx="2"/>
+<rect x="110.6" y="63.2" width="27.0" height="336.8" fill="#f58518" rx="2"/>
+<rect x="137.6" y="91.8" width="27.0" height="308.2" fill="#54a24b" rx="2"/>
+<text class="small" x="124.1" y="520" text-anchor="end" transform="rotate(-35 124.1 520)">gpt-5.4</text>
+<rect x="191.7" y="86.3" width="27.0" height="313.7" fill="#4c78a8" rx="2"/>
+<rect x="218.8" y="80.8" width="27.0" height="319.2" fill="#f58518" rx="2"/>
+<rect x="245.8" y="103.9" width="27.0" height="296.1" fill="#54a24b" rx="2"/>
+<text class="small" x="232.3" y="520" text-anchor="end" transform="rotate(-35 232.3 520)">gpt-5</text>
+<rect x="299.9" y="96.2" width="27.0" height="303.8" fill="#4c78a8" rx="2"/>
+<rect x="326.9" y="76.4" width="27.0" height="323.6" fill="#f58518" rx="2"/>
+<rect x="354.0" y="101.7" width="27.0" height="298.3" fill="#54a24b" rx="2"/>
+<text class="small" x="340.5" y="520" text-anchor="end" transform="rotate(-35 340.5 520)">gpt-5.2</text>
+<rect x="408.1" y="102.8" width="27.0" height="297.2" fill="#4c78a8" rx="2"/>
+<rect x="435.1" y="80.8" width="27.0" height="319.2" fill="#f58518" rx="2"/>
+<rect x="462.2" y="106.1" width="27.0" height="293.9" fill="#54a24b" rx="2"/>
+<text class="small" x="448.6" y="520" text-anchor="end" transform="rotate(-35 448.6 520)">Qwen3.6-27B-FP8 [thinking=false]</text>
+<rect x="516.3" y="92.9" width="27.0" height="307.1" fill="#4c78a8" rx="2"/>
+<rect x="543.3" y="75.3" width="27.0" height="324.7" fill="#f58518" rx="2"/>
+<rect x="570.3" y="125.9" width="27.0" height="274.1" fill="#54a24b" rx="2"/>
+<text class="small" x="556.8" y="520" text-anchor="end" transform="rotate(-35 556.8 520)">gpt-5-mini</text>
+<rect x="624.4" y="89.6" width="27.0" height="310.4" fill="#4c78a8" rx="2"/>
+<rect x="651.5" y="77.5" width="27.0" height="322.5" fill="#f58518" rx="2"/>
+<rect x="678.5" y="128.1" width="27.0" height="271.9" fill="#54a24b" rx="2"/>
+<text class="small" x="665.0" y="520" text-anchor="end" transform="rotate(-35 665.0 520)">gpt-5.4-mini</text>
+<rect x="732.6" y="89.6" width="27.0" height="310.4" fill="#4c78a8" rx="2"/>
+<rect x="759.7" y="77.5" width="27.0" height="322.5" fill="#f58518" rx="2"/>
+<rect x="786.7" y="130.3" width="27.0" height="269.7" fill="#54a24b" rx="2"/>
+<text class="small" x="773.2" y="520" text-anchor="end" transform="rotate(-35 773.2 520)">Qwen3.6-27B-FP8</text>
+<rect x="840.8" y="99.5" width="27.0" height="300.5" fill="#4c78a8" rx="2"/>
+<rect x="867.8" y="79.7" width="27.0" height="320.3" fill="#f58518" rx="2"/>
+<rect x="894.9" y="131.4" width="27.0" height="268.6" fill="#54a24b" rx="2"/>
+<text class="small" x="881.4" y="520" text-anchor="end" transform="rotate(-35 881.4 520)">gpt-5.4-nano</text>
+<rect x="949.0" y="106.1" width="27.0" height="293.9" fill="#4c78a8" rx="2"/>
+<rect x="976.0" y="79.7" width="27.0" height="320.3" fill="#f58518" rx="2"/>
+<rect x="1003.1" y="130.3" width="27.0" height="269.7" fill="#54a24b" rx="2"/>
+<text class="small" x="989.5" y="520" text-anchor="end" transform="rotate(-35 989.5 520)">Qwen3.6-35B-A3B-FP8</text>
+<rect x="1057.2" y="129.2" width="27.0" height="270.8" fill="#4c78a8" rx="2"/>
+<rect x="1084.2" y="81.9" width="27.0" height="318.1" fill="#f58518" rx="2"/>
+<rect x="1111.2" y="114.9" width="27.0" height="285.1" fill="#54a24b" rx="2"/>
+<text class="small" x="1097.7" y="520" text-anchor="end" transform="rotate(-35 1097.7 520)">Qwen3.6-35B-A3B-FP8 [thinking=false]</text>
+<rect x="1165.3" y="112.7" width="27.0" height="287.3" fill="#4c78a8" rx="2"/>
+<rect x="1192.4" y="123.7" width="27.0" height="276.3" fill="#f58518" rx="2"/>
+<rect x="1219.4" y="146.9" width="27.0" height="253.1" fill="#54a24b" rx="2"/>
+<text class="small" x="1205.9" y="520" text-anchor="end" transform="rotate(-35 1205.9 520)">gpt-5-nano</text>
+<line class="axis" x1="70" y1="400" x2="1260" y2="400"/>
+<rect x="980" y="60" width="14" height="14" fill="#4c78a8"/>
+<text class="small" x="1002" y="72">kind 一致率</text>
+<rect x="980" y="84" width="14" height="14" fill="#f58518"/>
+<text class="small" x="1002" y="96">rag 距離スコア</text>
+<rect x="980" y="108" width="14" height="14" fill="#54a24b"/>
+<text class="small" x="1002" y="120">detail 距離スコア</text>
+</svg>

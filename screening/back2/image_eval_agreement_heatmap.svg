@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="806" height="736" viewBox="0 0 806 736">
+<rect width="100%" height="100%" fill="white"/>
+<text x="403.0" y="28" font-size="18" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">kind・rag・detail の完全一致率</text>
+<text x="204.0" y="70" font-size="12" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5</text>
+<text x="150" y="138.0" font-size="12" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5</text>
+<text x="292.0" y="70" font-size="12" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5-mini</text>
+<text x="150" y="226.0" font-size="12" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5-mini</text>
+<text x="380.0" y="70" font-size="12" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5-nano</text>
+<text x="150" y="314.0" font-size="12" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5-nano</text>
+<text x="468.0" y="70" font-size="12" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.2</text>
+<text x="150" y="402.0" font-size="12" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.2</text>
+<text x="556.0" y="70" font-size="12" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.4</text>
+<text x="150" y="490.0" font-size="12" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.4</text>
+<text x="644.0" y="70" font-size="12" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.4-mini</text>
+<text x="150" y="578.0" font-size="12" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.4-mini</text>
+<text x="732.0" y="70" font-size="12" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.4-nano</text>
+<text x="150" y="666.0" font-size="12" text-anchor="end" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">gpt-5.4-nano</text>
+<rect x="160" y="90" width="88" height="88" fill="rgb(115,123,255)" stroke="white"/>
+<text x="204.0" y="138.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">100.0%</text>
+<rect x="248" y="90" width="88" height="88" fill="rgb(171,179,255)" stroke="white"/>
+<text x="292.0" y="138.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">59.4%</text>
+<rect x="336" y="90" width="88" height="88" fill="rgb(208,216,255)" stroke="white"/>
+<text x="380.0" y="138.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">33.0%</text>
+<rect x="424" y="90" width="88" height="88" fill="rgb(183,191,255)" stroke="white"/>
+<text x="468.0" y="138.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">50.9%</text>
+<rect x="512" y="90" width="88" height="88" fill="rgb(191,199,255)" stroke="white"/>
+<text x="556.0" y="138.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">45.3%</text>
+<rect x="600" y="90" width="88" height="88" fill="rgb(237,245,255)" stroke="white"/>
+<text x="644.0" y="138.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">12.3%</text>
+<rect x="688" y="90" width="88" height="88" fill="rgb(200,208,255)" stroke="white"/>
+<text x="732.0" y="138.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">38.7%</text>
+<rect x="160" y="178" width="88" height="88" fill="rgb(171,179,255)" stroke="white"/>
+<text x="204.0" y="226.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">59.4%</text>
+<rect x="248" y="178" width="88" height="88" fill="rgb(115,123,255)" stroke="white"/>
+<text x="292.0" y="226.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">100.0%</text>
+<rect x="336" y="178" width="88" height="88" fill="rgb(208,216,255)" stroke="white"/>
+<text x="380.0" y="226.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">33.0%</text>
+<rect x="424" y="178" width="88" height="88" fill="rgb(181,189,255)" stroke="white"/>
+<text x="468.0" y="226.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">52.8%</text>
+<rect x="512" y="178" width="88" height="88" fill="rgb(191,199,255)" stroke="white"/>
+<text x="556.0" y="226.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">45.3%</text>
+<rect x="600" y="178" width="88" height="88" fill="rgb(229,237,255)" stroke="white"/>
+<text x="644.0" y="226.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">17.9%</text>
+<rect x="688" y="178" width="88" height="88" fill="rgb(208,216,255)" stroke="white"/>
+<text x="732.0" y="226.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">33.0%</text>
+<rect x="160" y="266" width="88" height="88" fill="rgb(208,216,255)" stroke="white"/>
+<text x="204.0" y="314.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">33.0%</text>
+<rect x="248" y="266" width="88" height="88" fill="rgb(208,216,255)" stroke="white"/>
+<text x="292.0" y="314.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">33.0%</text>
+<rect x="336" y="266" width="88" height="88" fill="rgb(115,123,255)" stroke="white"/>
+<text x="380.0" y="314.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">100.0%</text>
+<rect x="424" y="266" width="88" height="88" fill="rgb(212,220,255)" stroke="white"/>
+<text x="468.0" y="314.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">30.2%</text>
+<rect x="512" y="266" width="88" height="88" fill="rgb(219,227,255)" stroke="white"/>
+<text x="556.0" y="314.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">25.5%</text>
+<rect x="600" y="266" width="88" height="88" fill="rgb(231,239,255)" stroke="white"/>
+<text x="644.0" y="314.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">17.0%</text>
+<rect x="688" y="266" width="88" height="88" fill="rgb(220,228,255)" stroke="white"/>
+<text x="732.0" y="314.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">24.5%</text>
+<rect x="160" y="354" width="88" height="88" fill="rgb(183,191,255)" stroke="white"/>
+<text x="204.0" y="402.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">50.9%</text>
+<rect x="248" y="354" width="88" height="88" fill="rgb(181,189,255)" stroke="white"/>
+<text x="292.0" y="402.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">52.8%</text>
+<rect x="336" y="354" width="88" height="88" fill="rgb(212,220,255)" stroke="white"/>
+<text x="380.0" y="402.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">30.2%</text>
+<rect x="424" y="354" width="88" height="88" fill="rgb(115,123,255)" stroke="white"/>
+<text x="468.0" y="402.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">100.0%</text>
+<rect x="512" y="354" width="88" height="88" fill="rgb(177,185,255)" stroke="white"/>
+<text x="556.0" y="402.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">55.7%</text>
+<rect x="600" y="354" width="88" height="88" fill="rgb(208,216,255)" stroke="white"/>
+<text x="644.0" y="402.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">33.0%</text>
+<rect x="688" y="354" width="88" height="88" fill="rgb(199,207,255)" stroke="white"/>
+<text x="732.0" y="402.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">39.6%</text>
+<rect x="160" y="442" width="88" height="88" fill="rgb(191,199,255)" stroke="white"/>
+<text x="204.0" y="490.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">45.3%</text>
+<rect x="248" y="442" width="88" height="88" fill="rgb(191,199,255)" stroke="white"/>
+<text x="292.0" y="490.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">45.3%</text>
+<rect x="336" y="442" width="88" height="88" fill="rgb(219,227,255)" stroke="white"/>
+<text x="380.0" y="490.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">25.5%</text>
+<rect x="424" y="442" width="88" height="88" fill="rgb(177,185,255)" stroke="white"/>
+<text x="468.0" y="490.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">55.7%</text>
+<rect x="512" y="442" width="88" height="88" fill="rgb(115,123,255)" stroke="white"/>
+<text x="556.0" y="490.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">100.0%</text>
+<rect x="600" y="442" width="88" height="88" fill="rgb(199,207,255)" stroke="white"/>
+<text x="644.0" y="490.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">39.6%</text>
+<rect x="688" y="442" width="88" height="88" fill="rgb(214,222,255)" stroke="white"/>
+<text x="732.0" y="490.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">29.2%</text>
+<rect x="160" y="530" width="88" height="88" fill="rgb(237,245,255)" stroke="white"/>
+<text x="204.0" y="578.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">12.3%</text>
+<rect x="248" y="530" width="88" height="88" fill="rgb(229,237,255)" stroke="white"/>
+<text x="292.0" y="578.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">17.9%</text>
+<rect x="336" y="530" width="88" height="88" fill="rgb(231,239,255)" stroke="white"/>
+<text x="380.0" y="578.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">17.0%</text>
+<rect x="424" y="530" width="88" height="88" fill="rgb(208,216,255)" stroke="white"/>
+<text x="468.0" y="578.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">33.0%</text>
+<rect x="512" y="530" width="88" height="88" fill="rgb(199,207,255)" stroke="white"/>
+<text x="556.0" y="578.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">39.6%</text>
+<rect x="600" y="530" width="88" height="88" fill="rgb(115,123,255)" stroke="white"/>
+<text x="644.0" y="578.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">100.0%</text>
+<rect x="688" y="530" width="88" height="88" fill="rgb(216,224,255)" stroke="white"/>
+<text x="732.0" y="578.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">27.4%</text>
+<rect x="160" y="618" width="88" height="88" fill="rgb(200,208,255)" stroke="white"/>
+<text x="204.0" y="666.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">38.7%</text>
+<rect x="248" y="618" width="88" height="88" fill="rgb(208,216,255)" stroke="white"/>
+<text x="292.0" y="666.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">33.0%</text>
+<rect x="336" y="618" width="88" height="88" fill="rgb(220,228,255)" stroke="white"/>
+<text x="380.0" y="666.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">24.5%</text>
+<rect x="424" y="618" width="88" height="88" fill="rgb(199,207,255)" stroke="white"/>
+<text x="468.0" y="666.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">39.6%</text>
+<rect x="512" y="618" width="88" height="88" fill="rgb(214,222,255)" stroke="white"/>
+<text x="556.0" y="666.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">29.2%</text>
+<rect x="600" y="618" width="88" height="88" fill="rgb(216,224,255)" stroke="white"/>
+<text x="644.0" y="666.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">27.4%</text>
+<rect x="688" y="618" width="88" height="88" fill="rgb(115,123,255)" stroke="white"/>
+<text x="732.0" y="666.0" font-size="13" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">100.0%</text>
+</svg>

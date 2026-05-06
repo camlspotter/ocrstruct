@@ -1,0 +1,11 @@
+uv run python scripts/run_image_screening_eval.py \
+  --eval-set sample_images.imageref.json \
+  --out screening/image_eval_results_v2.jsonl \
+  --model gpt-5-nano \
+  --model gpt-5-mini \
+  --model gpt-5 \
+  --model gpt-5.2 \
+  --model gpt-5.4 \
+  --model gpt-5.4-mini \
+  --model gpt-5.4-nano
+  

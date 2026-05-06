@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="420" viewBox="0 0 760 420">
+<rect width="100%" height="100%" fill="white"/>
+<text x="380.0" y="24" font-size="18" text-anchor="middle" font-weight="bold" fill="#111" font-family="Helvetica, Arial, sans-serif">Average Latency vs Average Cost</text>
+<line x1="70" y1="365" x2="730" y2="365" stroke="#333"/>
+<line x1="70" y1="365" x2="70" y2="40" stroke="#333"/>
+<line x1="70.0" y1="365" x2="70.0" y2="370" stroke="#333"/>
+<text x="70.0" y="385" font-size="11" text-anchor="middle" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">0.0s</text>
+<line x1="202.0" y1="365" x2="202.0" y2="370" stroke="#333"/>
+<text x="202.0" y="385" font-size="11" text-anchor="middle" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">2.5s</text>
+<line x1="334.0" y1="365" x2="334.0" y2="370" stroke="#333"/>
+<text x="334.0" y="385" font-size="11" text-anchor="middle" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">5.1s</text>
+<line x1="466.0" y1="365" x2="466.0" y2="370" stroke="#333"/>
+<text x="466.0" y="385" font-size="11" text-anchor="middle" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">7.6s</text>
+<line x1="598.0" y1="365" x2="598.0" y2="370" stroke="#333"/>
+<text x="598.0" y="385" font-size="11" text-anchor="middle" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">10.2s</text>
+<line x1="730.0" y1="365" x2="730.0" y2="370" stroke="#333"/>
+<text x="730.0" y="385" font-size="11" text-anchor="middle" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">12.7s</text>
+<line x1="65" y1="365.0" x2="70" y2="365.0" stroke="#333"/>
+<text x="60" y="369.0" font-size="11" text-anchor="end" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">$0.000</text>
+<line x1="65" y1="300.0" x2="70" y2="300.0" stroke="#333"/>
+<text x="60" y="304.0" font-size="11" text-anchor="end" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">$0.002</text>
+<line x1="70" y1="300.0" x2="730" y2="300.0" stroke="#eee"/>
+<line x1="65" y1="235.0" x2="70" y2="235.0" stroke="#333"/>
+<text x="60" y="239.0" font-size="11" text-anchor="end" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">$0.003</text>
+<line x1="70" y1="235.0" x2="730" y2="235.0" stroke="#eee"/>
+<line x1="65" y1="170.0" x2="70" y2="170.0" stroke="#333"/>
+<text x="60" y="174.0" font-size="11" text-anchor="end" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">$0.005</text>
+<line x1="70" y1="170.0" x2="730" y2="170.0" stroke="#eee"/>
+<line x1="65" y1="105.0" x2="70" y2="105.0" stroke="#333"/>
+<text x="60" y="109.0" font-size="11" text-anchor="end" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">$0.006</text>
+<line x1="70" y1="105.0" x2="730" y2="105.0" stroke="#eee"/>
+<line x1="65" y1="40.0" x2="70" y2="40.0" stroke="#333"/>
+<text x="60" y="44.0" font-size="11" text-anchor="end" font-weight="normal" fill="#555" font-family="Helvetica, Arial, sans-serif">$0.008</text>
+<line x1="70" y1="40.0" x2="730" y2="40.0" stroke="#eee"/>
+<text x="380.0" y="405" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">Average latency (seconds)</text>
+<g transform="translate(18 210.0) rotate(-90)"><text x="0" y="0" font-size="12" text-anchor="middle" font-weight="normal" fill="#111" font-family="Helvetica, Arial, sans-serif">Average cost per image (USD)</text></g>
+<circle cx="670.0" cy="340.9" r="7" fill="#1f77b4" opacity="0.9"/>
+<text x="680.0" y="332.86439979707654" font-size="12" text-anchor="start" font-weight="bold" fill="#1f77b4" font-family="Helvetica, Arial, sans-serif">gpt-5-nano</text>
+<circle cx="485.4" cy="313.7" r="7" fill="#2ca02c" opacity="0.9"/>
+<text x="495.40408802082453" y="305.7477327625773" font-size="12" text-anchor="start" font-weight="bold" fill="#2ca02c" font-family="Helvetica, Arial, sans-serif">gpt-5-mini</text>
+<circle cx="560.8" cy="82.4" r="7" fill="#d62728" opacity="0.9"/>
+<text x="570.8257182839036" y="74.39130434782612" font-size="12" text-anchor="start" font-weight="bold" fill="#d62728" font-family="Helvetica, Arial, sans-serif">gpt-5</text>
+<circle cx="198.8" cy="227.4" r="7" fill="#ff7f0e" opacity="0.9"/>
+<text x="208.79788322465544" y="219.4002967282869" font-size="12" text-anchor="start" font-weight="bold" fill="#ff7f0e" font-family="Helvetica, Arial, sans-serif">gpt-5.2</text>
+<circle cx="167.3" cy="184.8" r="7" fill="#9467bd" opacity="0.9"/>
+<text x="177.2772714828955" y="176.81991517630667" font-size="12" text-anchor="start" font-weight="bold" fill="#9467bd" font-family="Helvetica, Arial, sans-serif">gpt-5.4</text>
+</svg>

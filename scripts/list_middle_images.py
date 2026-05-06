@@ -50,6 +50,13 @@ def _image_file_path(middle_json_path: Path, image_path: str) -> Path:
     return middle_json_path.parent / "images" / path
 
 
+def _pdf_path_from_middle_json(middle_json_path: Path) -> Path:
+    parent = middle_json_path.parent
+    if parent.parent.name == "__data":
+        return parent.parent.parent / parent.name
+    return parent
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -78,7 +85,7 @@ def main() -> None:
         refs.extend(
             image_refs_from_middle(
                 result.middle_json,
-                pdf_path=str(middle_json_path.parent),
+                pdf_path=str(_pdf_path_from_middle_json(middle_json_path)),
                 middle_json_path=str(middle_json_path),
             )
         )

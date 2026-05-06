@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>image eval analysis</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">image eval analysis</h1>
+</header>
+<h1 id="vlm-による画像分類実験">VLM による画像分類実験</h1>
+<p>計測データ: <code>image_eval_results_v2.jsonl</code> 正解データ:
+<code>image_eval_results.gpt-5.4.goldset.json</code></p>
+<h2 id="abstract">Abstract</h2>
+<p>Multimodal RAG を作成するにあたり、文書から画像を取り出し、VLM
+によりそれらの 説明テキストを抽出したい。その前段階の screening
+として、画像の説明テキストを
+コストと時間をかけて得る「テキスト化価値」があるかどうかの判別を
+高速、低コストで行うこととした。</p>
+<p>本実験では、ROIS にある文書中の約
+100個の画像に対し、複数のモデルを使用して
+テキスト化価値の推定を行い、モデルの評価を行った。</p>
+<p>その結果 XXX TODO 現在結論をつける段階にない。</p>
+<h2 id="テキスト化価値">テキスト化価値</h2>
+<p>テキスト化価値とは、画像について追加の説明文や OCR 結果を生成し、 RAG
+に登録するだけの価値があるかどうかを指す。</p>
+<p><code>kind</code>: 画像の種類。たとえば <code>diagram</code>,
+<code>text_as_image</code>, <code>seal</code>, <code>code_symbol</code>
+など。</p>
+<p><code>rag_value</code> の値は次のように解釈する:</p>
+<ul>
+<li><code>high</code>:
+画像そのものが情報の担い手であり、説明文や抽出テキストを RAG
+に入れる価値が高い。</li>
+<li><code>medium</code>:
+一定の情報価値はあるが、文書本文だけで大筋が把握できる可能性もある。</li>
+<li><code>low</code>: 補助的な価値はあるが、RAG
+への寄与は限定的である。</li>
+<li><code>none</code>: 説明文や OCR を追加しても、RAG
+上の価値はほとんど期待できない。</li>
+</ul>
+<p><code>detail_level</code> の値は、screening
+後にどこまでコストをかけて調べるべきかを表す:</p>
+<ul>
+<li><code>skip</code>: 追加調査を行わない。</li>
+<li><code>short</code>: 短い説明文だけを付ければ十分である。</li>
+<li><code>long</code>:
+構造や意味関係を含めた、やや詳しい説明文を作る価値がある。</li>
+<li><code>extract_text</code>:
+詳しい説明に加え、画像内テキストそのものを OCR
+などで抽出する価値が高い。</li>
+</ul>
+<p>この2つは似ているが、役割が異なる。<code>rag_value</code>
+は「そもそも価値があるか」を表し、 <code>detail_level</code>
+は「価値があるとして、どこまで調べるか」を表す。</p>
+<h2 id="対象概要">対象概要</h2>
+<p>画像: ROIS本部に存在する文書から人間が選んだ画像 106 枚</p>
+<p>モデル</p>
+<ul>
+<li>Qwen/Qwen3.6-27B-FP8 (thinking=null)</li>
+<li>Qwen/Qwen3.6-27B-FP8 (thinking=false)</li>
+<li>Qwen/Qwen3.6-35B-A3B-FP8 (thinking=null)</li>
+<li>Qwen/Qwen3.6-35B-A3B-FP8 (thinking=false)</li>
+<li>gpt-5</li>
+<li>gpt-5-mini</li>
+<li>gpt-5-nano</li>
+<li>gpt-5.2</li>
+<li>gpt-5.4</li>
+<li>gpt-5.4-mini</li>
+<li>gpt-5.4-nano</li>
+</ul>
+<p>ここで <code>thinking=null</code> は、thinking を明示指定せず、
+モデル側のデフォルト動作に任せた条件を意味する。 Qwen 3.6
+系では、この条件は実質的に <code>thinking=true</code>
+と解釈して差し支えない。 Qwen モデルについては ROIS 本部の DGX Spark
+互換機を利用し、そこでの処理時間を計測し、費用は0とした。</p>
+<p>OpenAI モデルについては <code>reasoning_effort</code>
+の指定を行っていない。 OpenAI
+のドキュメントによれば、この場合は多くのモデルで reasoning は行わない、
+もしくは極小ということになっている。</p>
+<p>これらを組み合わせ、合計 106 x 11 = 1166 の結果を得た。</p>
+<p>計測データ: <code>image_eval_results_v2.jsonl</code></p>
+<h2 id="正解データとスコアの定義">正解データとスコアの定義</h2>
+<p>正解データとして、 <code>gpt-5.4</code>
+で得られた回答を人間がチェックし、修正を加えた物を使用する。</p>
+<p>正解データ: <code>image_eval_results.gpt-5.4.goldset.json</code></p>
+<p>各モデルの出力を正解データと比べて採点した。</p>
+<ul>
+<li><code>kind</code>
+は離散的なラベルなので、正解と完全に一致したかどうかで評価する。</li>
+<li><code>rag_value</code> と <code>detail_level</code>
+は順序付きの尺度なので、以下の距離スコアを使う:
+<ul>
+<li>完全一致なら 1.0</li>
+<li>1段階ずれなら 0.67</li>
+<li>2段階ずれなら 0.33</li>
+<li>最大ずれなら 0.0 式で書くと <span
+class="math inline">1 − |<em>p</em><em>r</em><em>e</em><em>d</em> − <em>g</em><em>o</em><em>l</em><em>d</em>|/3</span>
+である。</li>
+</ul></li>
+</ul>
+<p>最終的な総合スコアは、次の重み付き平均で計算した。</p>
+<ul>
+<li><code>kind</code> 完全一致: 40%</li>
+<li><code>rag_value</code> 距離スコア: 30%</li>
+<li><code>detail_level</code> 距離スコア: 30%</li>
+</ul>
+<p>正解データの作成経緯から <code>gpt-5.4</code>
+でのスコアが高くなるバイアスが存在している可能性がある。</p>
+<h2 id="評価">評価</h2>
+<h3 id="総合スコア">総合スコア</h3>
+<figure>
+<img src="image_eval_gold_overall_score.svg" alt="Overall Score" />
+<figcaption aria-hidden="true">Overall Score</figcaption>
+</figure>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 17%" />
+<col style="width: 17%" />
+<col style="width: 17%" />
+<col style="width: 17%" />
+<col style="width: 17%" />
+</colgroup>
+<thead>
+<tr>
+<th>モデル条件</th>
+<th style="text-align: right;">総合スコア</th>
+<th style="text-align: right;">kind 一致率</th>
+<th style="text-align: right;">rag 距離スコア</th>
+<th style="text-align: right;">detail 距離スコア</th>
+<th style="text-align: right;">3項目完全一致率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gpt-5.4</code></td>
+<td style="text-align: right;">0.900</td>
+<td style="text-align: right;">86.8%</td>
+<td style="text-align: right;">0.962</td>
+<td style="text-align: right;">0.881</td>
+<td style="text-align: right;">52.8%</td>
+</tr>
+<tr>
+<td><code>gpt-5</code></td>
+<td style="text-align: right;">0.886</td>
+<td style="text-align: right;">89.6%</td>
+<td style="text-align: right;">0.912</td>
+<td style="text-align: right;">0.846</td>
+<td style="text-align: right;">46.2%</td>
+</tr>
+<tr>
+<td><code>gpt-5.2</code></td>
+<td style="text-align: right;">0.880</td>
+<td style="text-align: right;">86.8%</td>
+<td style="text-align: right;">0.925</td>
+<td style="text-align: right;">0.852</td>
+<td style="text-align: right;">45.3%</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8 [thinking=false]</code></td>
+<td style="text-align: right;">0.865</td>
+<td style="text-align: right;">84.9%</td>
+<td style="text-align: right;">0.912</td>
+<td style="text-align: right;">0.840</td>
+<td style="text-align: right;">37.7%</td>
+</tr>
+<tr>
+<td><code>gpt-5-mini</code></td>
+<td style="text-align: right;">0.864</td>
+<td style="text-align: right;">87.7%</td>
+<td style="text-align: right;">0.928</td>
+<td style="text-align: right;">0.783</td>
+<td style="text-align: right;">38.7%</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-mini</code></td>
+<td style="text-align: right;">0.864</td>
+<td style="text-align: right;">88.7%</td>
+<td style="text-align: right;">0.921</td>
+<td style="text-align: right;">0.777</td>
+<td style="text-align: right;">28.3%</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8 [thinking=null]</code></td>
+<td style="text-align: right;">0.862</td>
+<td style="text-align: right;">88.7%</td>
+<td style="text-align: right;">0.921</td>
+<td style="text-align: right;">0.770</td>
+<td style="text-align: right;">33.0%</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-nano</code></td>
+<td style="text-align: right;">0.848</td>
+<td style="text-align: right;">85.8%</td>
+<td style="text-align: right;">0.915</td>
+<td style="text-align: right;">0.767</td>
+<td style="text-align: right;">34.9%</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=null]</code></td>
+<td style="text-align: right;">0.842</td>
+<td style="text-align: right;">84.0%</td>
+<td style="text-align: right;">0.915</td>
+<td style="text-align: right;">0.770</td>
+<td style="text-align: right;">36.8%</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=false]</code></td>
+<td style="text-align: right;">0.826</td>
+<td style="text-align: right;">77.4%</td>
+<td style="text-align: right;">0.909</td>
+<td style="text-align: right;">0.814</td>
+<td style="text-align: right;">34.9%</td>
+</tr>
+<tr>
+<td><code>gpt-5-nano</code></td>
+<td style="text-align: right;">0.782</td>
+<td style="text-align: right;">82.1%</td>
+<td style="text-align: right;">0.789</td>
+<td style="text-align: right;">0.723</td>
+<td style="text-align: right;">27.4%</td>
+</tr>
+</tbody>
+</table>
+<h3 id="項目別スコア">項目別スコア</h3>
+<figure>
+<img src="image_eval_gold_axis_accuracy.svg" alt="Gold Axis Accuracy" />
+<figcaption aria-hidden="true">Gold Axis Accuracy</figcaption>
+</figure>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 17%" />
+<col style="width: 17%" />
+<col style="width: 17%" />
+<col style="width: 17%" />
+<col style="width: 17%" />
+</colgroup>
+<thead>
+<tr>
+<th>モデル条件</th>
+<th style="text-align: right;">kind 一致率</th>
+<th style="text-align: right;">rag 平均ずれ</th>
+<th style="text-align: right;">rag 距離スコア</th>
+<th style="text-align: right;">detail 平均ずれ</th>
+<th style="text-align: right;">detail 距離スコア</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gpt-5.4</code></td>
+<td style="text-align: right;">86.8%</td>
+<td style="text-align: right;">0.113</td>
+<td style="text-align: right;">0.962</td>
+<td style="text-align: right;">0.358</td>
+<td style="text-align: right;">0.881</td>
+</tr>
+<tr>
+<td><code>gpt-5</code></td>
+<td style="text-align: right;">89.6%</td>
+<td style="text-align: right;">0.264</td>
+<td style="text-align: right;">0.912</td>
+<td style="text-align: right;">0.462</td>
+<td style="text-align: right;">0.846</td>
+</tr>
+<tr>
+<td><code>gpt-5.2</code></td>
+<td style="text-align: right;">86.8%</td>
+<td style="text-align: right;">0.226</td>
+<td style="text-align: right;">0.925</td>
+<td style="text-align: right;">0.443</td>
+<td style="text-align: right;">0.852</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8 [thinking=false]</code></td>
+<td style="text-align: right;">84.9%</td>
+<td style="text-align: right;">0.264</td>
+<td style="text-align: right;">0.912</td>
+<td style="text-align: right;">0.481</td>
+<td style="text-align: right;">0.840</td>
+</tr>
+<tr>
+<td><code>gpt-5-mini</code></td>
+<td style="text-align: right;">87.7%</td>
+<td style="text-align: right;">0.217</td>
+<td style="text-align: right;">0.928</td>
+<td style="text-align: right;">0.651</td>
+<td style="text-align: right;">0.783</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-mini</code></td>
+<td style="text-align: right;">88.7%</td>
+<td style="text-align: right;">0.236</td>
+<td style="text-align: right;">0.921</td>
+<td style="text-align: right;">0.670</td>
+<td style="text-align: right;">0.777</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8 [thinking=null]</code></td>
+<td style="text-align: right;">88.7%</td>
+<td style="text-align: right;">0.236</td>
+<td style="text-align: right;">0.921</td>
+<td style="text-align: right;">0.689</td>
+<td style="text-align: right;">0.770</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-nano</code></td>
+<td style="text-align: right;">85.8%</td>
+<td style="text-align: right;">0.255</td>
+<td style="text-align: right;">0.915</td>
+<td style="text-align: right;">0.698</td>
+<td style="text-align: right;">0.767</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=null]</code></td>
+<td style="text-align: right;">84.0%</td>
+<td style="text-align: right;">0.255</td>
+<td style="text-align: right;">0.915</td>
+<td style="text-align: right;">0.689</td>
+<td style="text-align: right;">0.770</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=false]</code></td>
+<td style="text-align: right;">77.4%</td>
+<td style="text-align: right;">0.274</td>
+<td style="text-align: right;">0.909</td>
+<td style="text-align: right;">0.557</td>
+<td style="text-align: right;">0.814</td>
+</tr>
+<tr>
+<td><code>gpt-5-nano</code></td>
+<td style="text-align: right;">82.1%</td>
+<td style="text-align: right;">0.632</td>
+<td style="text-align: right;">0.789</td>
+<td style="text-align: right;">0.830</td>
+<td style="text-align: right;">0.723</td>
+</tr>
+</tbody>
+</table>
+<h3 id="コストとレイテンシ">コストとレイテンシ</h3>
+<figure>
+<img src="image_eval_latency_cost.svg" alt="Latency vs Cost" />
+<figcaption aria-hidden="true">Latency vs Cost</figcaption>
+</figure>
+<table>
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+</colgroup>
+<thead>
+<tr>
+<th>モデル条件</th>
+<th style="text-align: right;">平均レイテンシ</th>
+<th style="text-align: right;">中央レイテンシ</th>
+<th style="text-align: right;">1画像あたり平均コスト</th>
+<th style="text-align: right;">このセット合計コスト</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8 [thinking=null]</code></td>
+<td style="text-align: right;">175.09s</td>
+<td style="text-align: right;">143.51s</td>
+<td style="text-align: right;">$0.0</td>
+<td style="text-align: right;">$0.0</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8 [thinking=false]</code></td>
+<td style="text-align: right;">7.47s</td>
+<td style="text-align: right;">7.43s</td>
+<td style="text-align: right;">$0.0</td>
+<td style="text-align: right;">$0.0</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=null]</code></td>
+<td style="text-align: right;">27.02s</td>
+<td style="text-align: right;">22.51s</td>
+<td style="text-align: right;">$0.0</td>
+<td style="text-align: right;">$0.0</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=false]</code></td>
+<td style="text-align: right;">1.56s</td>
+<td style="text-align: right;">1.45s</td>
+<td style="text-align: right;">$0.0</td>
+<td style="text-align: right;">$0.0</td>
+</tr>
+<tr>
+<td><code>gpt-5</code></td>
+<td style="text-align: right;">9.16s</td>
+<td style="text-align: right;">8.79s</td>
+<td style="text-align: right;">$0.0071</td>
+<td style="text-align: right;">$0.756</td>
+</tr>
+<tr>
+<td><code>gpt-5-mini</code></td>
+<td style="text-align: right;">8.59s</td>
+<td style="text-align: right;">8.16s</td>
+<td style="text-align: right;">$0.0013</td>
+<td style="text-align: right;">$0.133</td>
+</tr>
+<tr>
+<td><code>gpt-5-nano</code></td>
+<td style="text-align: right;">11.66s</td>
+<td style="text-align: right;">11.15s</td>
+<td style="text-align: right;">$0.0006</td>
+<td style="text-align: right;">$0.060</td>
+</tr>
+<tr>
+<td><code>gpt-5.2</code></td>
+<td style="text-align: right;">2.97s</td>
+<td style="text-align: right;">2.78s</td>
+<td style="text-align: right;">$0.0035</td>
+<td style="text-align: right;">$0.369</td>
+</tr>
+<tr>
+<td><code>gpt-5.4</code></td>
+<td style="text-align: right;">2.41s</td>
+<td style="text-align: right;">1.84s</td>
+<td style="text-align: right;">$0.0045</td>
+<td style="text-align: right;">$0.482</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-mini</code></td>
+<td style="text-align: right;">1.75s</td>
+<td style="text-align: right;">1.43s</td>
+<td style="text-align: right;">$0.0013</td>
+<td style="text-align: right;">$0.141</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-nano</code></td>
+<td style="text-align: right;">2.75s</td>
+<td style="text-align: right;">2.66s</td>
+<td style="text-align: right;">$0.0004</td>
+<td style="text-align: right;">$0.040</td>
+</tr>
+</tbody>
+</table>
+<h3 id="主な所見">主な所見</h3>
+<p>総合スコアが最も高かったのは <code>gpt-5.4</code> の
+0.900。ただし正解データは <code>gpt-5.4</code>
+の結果を元にしているため、バイアスが入っている可能性がある。</p>
+<p>最速は <code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=false]</code>
+だった。</p>
+<p>OpenAI の古いモデルでは意外と時間がかかる傾向がある。</p>
+<p>Qwen では <code>Qwen/Qwen3.6-27B-FP8</code> の
+<code>thinking=null</code>（実質 <code>thinking=true</code>）と
+<code>thinking=false</code> で総合スコアはそれぞれ 0.862, 0.865
+と大差なかったにも関わらず、 時間差が極端で、平均 175.1s と 7.5s
+であることが目立つ。</p>
+<p><code>Qwen/Qwen3.6-35B-A3B-FP8</code> は <code>thinking=null</code>
+で平均 27.0s、総合スコア 0.842 だった。 <code>thinking=false</code>
+では平均 1.56s まで高速化した一方、総合スコアは 0.826 まで低下した。</p>
+<p>費用に関しては、当然 open weight model が最安である。</p>
+<h3 id="rois-文書中の画像-3985件に外挿した概算">ROIS 文書中の画像
+3985件に外挿した概算</h3>
+<p>現在、ROIS のローカル文書中には screening 対象の画像が 3985 件ある。
+今回の実験の
+1件あたり平均値を単純外挿すると、これらを処理する際の目安は次のとおりである:</p>
+<table>
+<thead>
+<tr>
+<th>モデル条件</th>
+<th style="text-align: right;">3985件の概算コスト</th>
+<th style="text-align: right;">3985件を直列実行した場合の概算時間</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8 [thinking=null]</code></td>
+<td style="text-align: right;">$0.00</td>
+<td style="text-align: right;">193.8時間</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8 [thinking=false]</code></td>
+<td style="text-align: right;">$0.00</td>
+<td style="text-align: right;">8.3時間</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=null]</code></td>
+<td style="text-align: right;">$0.00</td>
+<td style="text-align: right;">29.9時間</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=false]</code></td>
+<td style="text-align: right;">$0.00</td>
+<td style="text-align: right;">1.7時間</td>
+</tr>
+<tr>
+<td><code>gpt-5</code></td>
+<td style="text-align: right;">$28.43</td>
+<td style="text-align: right;">10.1時間</td>
+</tr>
+<tr>
+<td><code>gpt-5-mini</code></td>
+<td style="text-align: right;">$4.99</td>
+<td style="text-align: right;">9.5時間</td>
+</tr>
+<tr>
+<td><code>gpt-5-nano</code></td>
+<td style="text-align: right;">$2.27</td>
+<td style="text-align: right;">12.9時間</td>
+</tr>
+<tr>
+<td><code>gpt-5.2</code></td>
+<td style="text-align: right;">$13.86</td>
+<td style="text-align: right;">3.3時間</td>
+</tr>
+<tr>
+<td><code>gpt-5.4</code></td>
+<td style="text-align: right;">$18.13</td>
+<td style="text-align: right;">2.7時間</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-mini</code></td>
+<td style="text-align: right;">$5.31</td>
+<td style="text-align: right;">1.9時間</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-nano</code></td>
+<td style="text-align: right;">$1.50</td>
+<td style="text-align: right;">3.0時間</td>
+</tr>
+</tbody>
+</table>
+<p>時間については OpenAI
+モデルについては並列処理を行うことで短縮することができる。 Open weight
+model については ROIS 本部での機材の関係上、並列化は難しい。</p>
+<h2 id="推奨">推奨</h2>
+<p>総合評価で見ると、第一候補は <code>gpt-5.4</code>。ROIS
+内文書のみに限ればコストも許容範囲だと思われる。</p>
+<p>ローカル GPU で速度と品質のバランスが最も良いのは
+<code>Qwen/Qwen3.6-27B-FP8 [thinking=false]</code>。平均 7.5s
+で、総合スコアは 0.865。
+<code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=false]</code>
+はさらに高速だが、品質はやや下がる。</p>
+<p><code>Qwen/Qwen3.6-27B-FP8</code> は <code>thinking</code>
+条件で速度が大きく変わる。 Thinking はほぼ役に立っていない。</p>
+<h2 id="付録-kind-の主な取り違え">付録: kind の主な取り違え</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>モデル条件</th>
+<th>主な取り違え</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gpt-5.4</code></td>
+<td><code>logo_or_mark</code>→<code>seal</code>
+(5)<br><code>decorative</code>→<code>text_as_image</code>
+(1)<br><code>decorative</code>→<code>diagram</code>
+(1)<br><code>diagram</code>→<code>table_or_form</code>
+(1)<br><code>diagram</code>→<code>code_symbol</code> (1)</td>
+</tr>
+<tr>
+<td><code>gpt-5</code></td>
+<td><code>logo_or_mark</code>→<code>seal</code>
+(4)<br><code>text_as_image</code>→<code>decorative</code>
+(3)<br><code>logo_or_mark</code>→<code>decorative</code>
+(1)<br><code>diagram</code>→<code>code_symbol</code>
+(1)<br><code>logo_or_mark</code>→<code>code_symbol</code> (1)</td>
+</tr>
+<tr>
+<td><code>gpt-5.2</code></td>
+<td><code>logo_or_mark</code>→<code>seal</code>
+(4)<br><code>text_as_image</code>→<code>decorative</code>
+(3)<br><code>arrow_only</code>→<code>diagram</code>
+(1)<br><code>logo_or_mark</code>→<code>table_or_form</code>
+(1)<br><code>text_as_image</code>→<code>seal</code> (1)</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8 [thinking=false]</code></td>
+<td><code>diagram</code>→<code>table_or_form</code>
+(3)<br><code>logo_or_mark</code>→<code>seal</code>
+(3)<br><code>logo_or_mark</code>→<code>arrow_only</code>
+(1)<br><code>decorative</code>→<code>diagram</code>
+(1)<br><code>diagram</code>→<code>code_symbol</code> (1)</td>
+</tr>
+<tr>
+<td><code>gpt-5-mini</code></td>
+<td><code>logo_or_mark</code>→<code>seal</code>
+(5)<br><code>text_as_image</code>→<code>decorative</code>
+(3)<br><code>logo_or_mark</code>→<code>table_or_form</code>
+(1)<br><code>text_as_image</code>→<code>seal</code>
+(1)<br><code>diagram</code>→<code>code_symbol</code> (1)</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-mini</code></td>
+<td><code>logo_or_mark</code>→<code>seal</code>
+(3)<br><code>text_as_image</code>→<code>decorative</code>
+(2)<br><code>logo_or_mark</code>→<code>table_or_form</code>
+(1)<br><code>decorative</code>→<code>text_as_image</code>
+(1)<br><code>diagram</code>→<code>table_or_form</code> (1)</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-27B-FP8</code></td>
+<td><code>logo_or_mark</code>→<code>seal</code>
+(4)<br><code>diagram</code>→<code>table_or_form</code>
+(2)<br><code>ui_or_screenshot</code>→<code>table_or_form</code>
+(1)<br><code>logo_or_mark</code>→<code>ui_or_screenshot</code>
+(1)<br><code>decorative</code>→<code>diagram</code> (1)</td>
+</tr>
+<tr>
+<td><code>gpt-5.4-nano</code></td>
+<td><code>logo_or_mark</code>→<code>seal</code>
+(3)<br><code>decorative</code>→<code>text_as_image</code>
+(2)<br><code>arrow_only</code>→<code>table_or_form</code>
+(1)<br><code>logo_or_mark</code>→<code>text_as_image</code>
+(1)<br><code>decorative</code>→<code>diagram</code> (1)</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8</code></td>
+<td><code>logo_or_mark</code>→<code>seal</code>
+(5)<br><code>diagram</code>→<code>table_or_form</code>
+(2)<br><code>text_as_image</code>→<code>decorative</code>
+(2)<br><code>ui_or_screenshot</code>→<code>table_or_form</code>
+(1)<br><code>table_or_form</code>→<code>diagram</code> (1)</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3.6-35B-A3B-FP8 [thinking=false]</code></td>
+<td><code>diagram</code>→<code>table_or_form</code>
+(4)<br><code>logo_or_mark</code>→<code>seal</code>
+(4)<br><code>decorative</code>→<code>diagram</code>
+(2)<br><code>table_or_form</code>→<code>diagram</code>
+(2)<br><code>logo_or_mark</code>→<code>arrow_only</code> (1)</td>
+</tr>
+<tr>
+<td><code>gpt-5-nano</code></td>
+<td><code>logo_or_mark</code>→<code>seal</code>
+(6)<br><code>logo_or_mark</code>→<code>text_as_image</code>
+(2)<br><code>decorative</code>→<code>text_as_image</code>
+(2)<br><code>diagram</code>→<code>text_as_image</code>
+(2)<br><code>arrow_only</code>→<code>table_or_form</code> (1)</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

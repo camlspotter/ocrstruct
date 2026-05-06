@@ -1,0 +1,548 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+  \setmainfont[]{Hiragino Sans}
+  \setmonofont[]{Menlo}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{longtable,booktabs,array}
+\newcounter{none} % for unnumbered tables
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\section{VLM
+による画像分類実験}\label{vlm-ux306bux3088ux308bux753bux50cfux5206ux985eux5b9fux9a13}
+
+計測データ: \texttt{image\_eval\_results\_v2.jsonl} 正解データ:
+\texttt{image\_eval\_results.gpt-5.4.goldset.json}
+
+\subsection{Abstract}\label{abstract}
+
+Multimodal RAG を作成するにあたり、文書から画像を取り出し、VLM
+によりそれらの 説明テキストを抽出したい。その前段階の screening
+として、画像の説明テキストを
+コストと時間をかけて得る「テキスト化価値」があるかどうかの判別を
+高速、低コストで行うこととした。
+
+本実験では、ROIS にある文書中の約
+100個の画像に対し、複数のモデルを使用して
+テキスト化価値の推定を行い、モデルの評価を行った。
+
+その結果 XXX TODO 現在結論をつける段階にない。
+
+\subsection{テキスト化価値}\label{ux30c6ux30adux30b9ux30c8ux5316ux4fa1ux5024}
+
+テキスト化価値とは、画像について追加の説明文や OCR 結果を生成し、 RAG
+に登録するだけの価値があるかどうかを指す。
+
+\texttt{kind}: 画像の種類。たとえば \texttt{diagram},
+\texttt{text\_as\_image}, \texttt{seal}, \texttt{code\_symbol} など。
+
+\texttt{rag\_value} の値は次のように解釈する:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{high}:
+  画像そのものが情報の担い手であり、説明文や抽出テキストを RAG
+  に入れる価値が高い。
+\item
+  \texttt{medium}:
+  一定の情報価値はあるが、文書本文だけで大筋が把握できる可能性もある。
+\item
+  \texttt{low}: 補助的な価値はあるが、RAG への寄与は限定的である。
+\item
+  \texttt{none}: 説明文や OCR を追加しても、RAG
+  上の価値はほとんど期待できない。
+\end{itemize}
+
+\texttt{detail\_level} の値は、screening
+後にどこまでコストをかけて調べるべきかを表す:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{skip}: 追加調査を行わない。
+\item
+  \texttt{short}: 短い説明文だけを付ければ十分である。
+\item
+  \texttt{long}:
+  構造や意味関係を含めた、やや詳しい説明文を作る価値がある。
+\item
+  \texttt{extract\_text}: 詳しい説明に加え、画像内テキストそのものを OCR
+  などで抽出する価値が高い。
+\end{itemize}
+
+この2つは似ているが、役割が異なる。\texttt{rag\_value}
+は「そもそも価値があるか」を表し、 \texttt{detail\_level}
+は「価値があるとして、どこまで調べるか」を表す。
+
+\subsection{対象概要}\label{ux5bfeux8c61ux6982ux8981}
+
+画像: ROIS本部に存在する文書から人間が選んだ画像 106 枚
+
+モデル
+
+\begin{itemize}
+\tightlist
+\item
+  Qwen/Qwen3.6-27B-FP8 (thinking=null)
+\item
+  Qwen/Qwen3.6-27B-FP8 (thinking=false)
+\item
+  Qwen/Qwen3.6-35B-A3B-FP8 (thinking=null)
+\item
+  Qwen/Qwen3.6-35B-A3B-FP8 (thinking=false)
+\item
+  gpt-5
+\item
+  gpt-5-mini
+\item
+  gpt-5-nano
+\item
+  gpt-5.2
+\item
+  gpt-5.4
+\item
+  gpt-5.4-mini
+\item
+  gpt-5.4-nano
+\end{itemize}
+
+ここで \texttt{thinking=null} は、thinking を明示指定せず、
+モデル側のデフォルト動作に任せた条件を意味する。 Qwen 3.6
+系では、この条件は実質的に \texttt{thinking=true}
+と解釈して差し支えない。 Qwen モデルについては ROIS 本部の DGX Spark
+互換機を利用し、そこでの処理時間を計測し、費用は0とした。
+
+OpenAI モデルについては \texttt{reasoning\_effort}
+の指定を行っていない。 OpenAI
+のドキュメントによれば、この場合は多くのモデルで reasoning は行わない、
+もしくは極小ということになっている。
+
+これらを組み合わせ、合計 106 x 11 = 1166 の結果を得た。
+
+計測データ: \texttt{image\_eval\_results\_v2.jsonl}
+
+\subsection{正解データとスコアの定義}\label{ux6b63ux89e3ux30c7ux30fcux30bfux3068ux30b9ux30b3ux30a2ux306eux5b9aux7fa9}
+
+正解データとして、 \texttt{gpt-5.4}
+で得られた回答を人間がチェックし、修正を加えた物を使用する。
+
+正解データ: \texttt{image\_eval\_results.gpt-5.4.goldset.json}
+
+各モデルの出力を正解データと比べて採点した。
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{kind}
+  は離散的なラベルなので、正解と完全に一致したかどうかで評価する。
+\item
+  \texttt{rag\_value} と \texttt{detail\_level}
+  は順序付きの尺度なので、以下の距離スコアを使う:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    完全一致なら 1.0
+  \item
+    1段階ずれなら 0.67
+  \item
+    2段階ずれなら 0.33
+  \item
+    最大ずれなら 0.0 式で書くと
+    \(1 - |\mathit{pred} - \mathit{gold}| / 3\) である。
+  \end{itemize}
+\end{itemize}
+
+最終的な総合スコアは、次の重み付き平均で計算した。
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{kind} 完全一致: 40\%
+\item
+  \texttt{rag\_value} 距離スコア: 30\%
+\item
+  \texttt{detail\_level} 距離スコア: 30\%
+\end{itemize}
+
+正解データの作成経緯から \texttt{gpt-5.4}
+でのスコアが高くなるバイアスが存在している可能性がある。
+
+\subsection{評価}\label{ux8a55ux4fa1}
+
+\subsubsection{総合スコア}\label{ux7dcfux5408ux30b9ux30b3ux30a2}
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio,alt={Overall Score}]{image_eval_gold_overall_score.pdf}}
+\caption{Overall Score}
+\end{figure}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1304}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+モデル条件
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+総合スコア
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+kind 一致率
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+rag 距離スコア
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+detail 距離スコア
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+3項目完全一致率
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{gpt-5.4} & 0.900 & 86.8\% & 0.962 & 0.881 & 52.8\% \\
+\texttt{gpt-5} & 0.886 & 89.6\% & 0.912 & 0.846 & 46.2\% \\
+\texttt{gpt-5.2} & 0.880 & 86.8\% & 0.925 & 0.852 & 45.3\% \\
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=false{]}} & 0.865 & 84.9\% &
+0.912 & 0.840 & 37.7\% \\
+\texttt{gpt-5-mini} & 0.864 & 87.7\% & 0.928 & 0.783 & 38.7\% \\
+\texttt{gpt-5.4-mini} & 0.864 & 88.7\% & 0.921 & 0.777 & 28.3\% \\
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=null{]}} & 0.862 & 88.7\% &
+0.921 & 0.770 & 33.0\% \\
+\texttt{gpt-5.4-nano} & 0.848 & 85.8\% & 0.915 & 0.767 & 34.9\% \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=null{]}} & 0.842 & 84.0\%
+& 0.915 & 0.770 & 36.8\% \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=false{]}} & 0.826 & 77.4\%
+& 0.909 & 0.814 & 34.9\% \\
+\texttt{gpt-5-nano} & 0.782 & 82.1\% & 0.789 & 0.723 & 27.4\% \\
+\end{longtable}
+}
+
+\subsubsection{項目別スコア}\label{ux9805ux76eeux5225ux30b9ux30b3ux30a2}
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio,alt={Gold Axis Accuracy}]{image_eval_gold_axis_accuracy.pdf}}
+\caption{Gold Axis Accuracy}
+\end{figure}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1304}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+モデル条件
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+kind 一致率
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+rag 平均ずれ
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+rag 距離スコア
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+detail 平均ずれ
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+detail 距離スコア
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{gpt-5.4} & 86.8\% & 0.113 & 0.962 & 0.358 & 0.881 \\
+\texttt{gpt-5} & 89.6\% & 0.264 & 0.912 & 0.462 & 0.846 \\
+\texttt{gpt-5.2} & 86.8\% & 0.226 & 0.925 & 0.443 & 0.852 \\
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=false{]}} & 84.9\% & 0.264 &
+0.912 & 0.481 & 0.840 \\
+\texttt{gpt-5-mini} & 87.7\% & 0.217 & 0.928 & 0.651 & 0.783 \\
+\texttt{gpt-5.4-mini} & 88.7\% & 0.236 & 0.921 & 0.670 & 0.777 \\
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=null{]}} & 88.7\% & 0.236 &
+0.921 & 0.689 & 0.770 \\
+\texttt{gpt-5.4-nano} & 85.8\% & 0.255 & 0.915 & 0.698 & 0.767 \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=null{]}} & 84.0\% & 0.255
+& 0.915 & 0.689 & 0.770 \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=false{]}} & 77.4\% & 0.274
+& 0.909 & 0.557 & 0.814 \\
+\texttt{gpt-5-nano} & 82.1\% & 0.632 & 0.789 & 0.830 & 0.723 \\
+\end{longtable}
+}
+
+\subsubsection{コストとレイテンシ}\label{ux30b3ux30b9ux30c8ux3068ux30ecux30a4ux30c6ux30f3ux30b7}
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio,alt={Latency vs Cost}]{image_eval_latency_cost.pdf}}
+\caption{Latency vs Cost}
+\end{figure}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1579}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+モデル条件
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+平均レイテンシ
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+中央レイテンシ
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+1画像あたり平均コスト
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+このセット合計コスト
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=null{]}} & 175.09s & 143.51s &
+\$0.0 & \$0.0 \\
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=false{]}} & 7.47s & 7.43s &
+\$0.0 & \$0.0 \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=null{]}} & 27.02s & 22.51s
+& \$0.0 & \$0.0 \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=false{]}} & 1.56s & 1.45s
+& \$0.0 & \$0.0 \\
+\texttt{gpt-5} & 9.16s & 8.79s & \$0.0071 & \$0.756 \\
+\texttt{gpt-5-mini} & 8.59s & 8.16s & \$0.0013 & \$0.133 \\
+\texttt{gpt-5-nano} & 11.66s & 11.15s & \$0.0006 & \$0.060 \\
+\texttt{gpt-5.2} & 2.97s & 2.78s & \$0.0035 & \$0.369 \\
+\texttt{gpt-5.4} & 2.41s & 1.84s & \$0.0045 & \$0.482 \\
+\texttt{gpt-5.4-mini} & 1.75s & 1.43s & \$0.0013 & \$0.141 \\
+\texttt{gpt-5.4-nano} & 2.75s & 2.66s & \$0.0004 & \$0.040 \\
+\end{longtable}
+}
+
+\subsubsection{主な所見}\label{ux4e3bux306aux6240ux898b}
+
+総合スコアが最も高かったのは \texttt{gpt-5.4} の
+0.900。ただし正解データは \texttt{gpt-5.4}
+の結果を元にしているため、バイアスが入っている可能性がある。
+
+最速は \texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=false{]}} だった。
+
+OpenAI の古いモデルでは意外と時間がかかる傾向がある。
+
+Qwen では \texttt{Qwen/Qwen3.6-27B-FP8} の \texttt{thinking=null}（実質
+\texttt{thinking=true}）と \texttt{thinking=false}
+で総合スコアはそれぞれ 0.862, 0.865 と大差なかったにも関わらず、
+時間差が極端で、平均 175.1s と 7.5s であることが目立つ。
+
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8} は \texttt{thinking=null} で平均
+27.0s、総合スコア 0.842 だった。 \texttt{thinking=false} では平均 1.56s
+まで高速化した一方、総合スコアは 0.826 まで低下した。
+
+費用に関しては、当然 open weight model が最安である。
+
+\subsubsection{ROIS 文書中の画像
+3985件に外挿した概算}\label{rois-ux6587ux66f8ux4e2dux306eux753bux50cf-3985ux4ef6ux306bux5916ux633fux3057ux305fux6982ux7b97}
+
+現在、ROIS のローカル文書中には screening 対象の画像が 3985 件ある。
+今回の実験の
+1件あたり平均値を単純外挿すると、これらを処理する際の目安は次のとおりである:
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}lrr@{}}
+\toprule\noalign{}
+モデル条件 & 3985件の概算コスト & 3985件を直列実行した場合の概算時間 \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=null{]}} & \$0.00 &
+193.8時間 \\
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=false{]}} & \$0.00 &
+8.3時間 \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=null{]}} & \$0.00 &
+29.9時間 \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=false{]}} & \$0.00 &
+1.7時間 \\
+\texttt{gpt-5} & \$28.43 & 10.1時間 \\
+\texttt{gpt-5-mini} & \$4.99 & 9.5時間 \\
+\texttt{gpt-5-nano} & \$2.27 & 12.9時間 \\
+\texttt{gpt-5.2} & \$13.86 & 3.3時間 \\
+\texttt{gpt-5.4} & \$18.13 & 2.7時間 \\
+\texttt{gpt-5.4-mini} & \$5.31 & 1.9時間 \\
+\texttt{gpt-5.4-nano} & \$1.50 & 3.0時間 \\
+\end{longtable}
+}
+
+時間については OpenAI
+モデルについては並列処理を行うことで短縮することができる。 Open weight
+model については ROIS 本部での機材の関係上、並列化は難しい。
+
+\subsection{推奨}\label{ux63a8ux5968}
+
+総合評価で見ると、第一候補は \texttt{gpt-5.4}。ROIS
+内文書のみに限ればコストも許容範囲だと思われる。
+
+ローカル GPU で速度と品質のバランスが最も良いのは
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=false{]}}。平均 7.5s
+で、総合スコアは 0.865。
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=false{]}}
+はさらに高速だが、品質はやや下がる。
+
+\texttt{Qwen/Qwen3.6-27B-FP8} は \texttt{thinking}
+条件で速度が大きく変わる。 Thinking はほぼ役に立っていない。
+
+\subsection{付録: kind
+の主な取り違え}\label{ux4ed8ux9332-kind-ux306eux4e3bux306aux53d6ux308aux9055ux3048}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+モデル条件
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+主な取り違え
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{gpt-5.4} & \texttt{logo\_or\_mark}→\texttt{seal}
+(5)\texttt{decorative}→\texttt{text\_as\_image}
+(1)\texttt{decorative}→\texttt{diagram}
+(1)\texttt{diagram}→\texttt{table\_or\_form}
+(1)\texttt{diagram}→\texttt{code\_symbol} (1) \\
+\texttt{gpt-5} & \texttt{logo\_or\_mark}→\texttt{seal}
+(4)\texttt{text\_as\_image}→\texttt{decorative}
+(3)\texttt{logo\_or\_mark}→\texttt{decorative}
+(1)\texttt{diagram}→\texttt{code\_symbol}
+(1)\texttt{logo\_or\_mark}→\texttt{code\_symbol} (1) \\
+\texttt{gpt-5.2} & \texttt{logo\_or\_mark}→\texttt{seal}
+(4)\texttt{text\_as\_image}→\texttt{decorative}
+(3)\texttt{arrow\_only}→\texttt{diagram}
+(1)\texttt{logo\_or\_mark}→\texttt{table\_or\_form}
+(1)\texttt{text\_as\_image}→\texttt{seal} (1) \\
+\texttt{Qwen/Qwen3.6-27B-FP8\ {[}thinking=false{]}} &
+\texttt{diagram}→\texttt{table\_or\_form}
+(3)\texttt{logo\_or\_mark}→\texttt{seal}
+(3)\texttt{logo\_or\_mark}→\texttt{arrow\_only}
+(1)\texttt{decorative}→\texttt{diagram}
+(1)\texttt{diagram}→\texttt{code\_symbol} (1) \\
+\texttt{gpt-5-mini} & \texttt{logo\_or\_mark}→\texttt{seal}
+(5)\texttt{text\_as\_image}→\texttt{decorative}
+(3)\texttt{logo\_or\_mark}→\texttt{table\_or\_form}
+(1)\texttt{text\_as\_image}→\texttt{seal}
+(1)\texttt{diagram}→\texttt{code\_symbol} (1) \\
+\texttt{gpt-5.4-mini} & \texttt{logo\_or\_mark}→\texttt{seal}
+(3)\texttt{text\_as\_image}→\texttt{decorative}
+(2)\texttt{logo\_or\_mark}→\texttt{table\_or\_form}
+(1)\texttt{decorative}→\texttt{text\_as\_image}
+(1)\texttt{diagram}→\texttt{table\_or\_form} (1) \\
+\texttt{Qwen/Qwen3.6-27B-FP8} & \texttt{logo\_or\_mark}→\texttt{seal}
+(4)\texttt{diagram}→\texttt{table\_or\_form}
+(2)\texttt{ui\_or\_screenshot}→\texttt{table\_or\_form}
+(1)\texttt{logo\_or\_mark}→\texttt{ui\_or\_screenshot}
+(1)\texttt{decorative}→\texttt{diagram} (1) \\
+\texttt{gpt-5.4-nano} & \texttt{logo\_or\_mark}→\texttt{seal}
+(3)\texttt{decorative}→\texttt{text\_as\_image}
+(2)\texttt{arrow\_only}→\texttt{table\_or\_form}
+(1)\texttt{logo\_or\_mark}→\texttt{text\_as\_image}
+(1)\texttt{decorative}→\texttt{diagram} (1) \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8} &
+\texttt{logo\_or\_mark}→\texttt{seal}
+(5)\texttt{diagram}→\texttt{table\_or\_form}
+(2)\texttt{text\_as\_image}→\texttt{decorative}
+(2)\texttt{ui\_or\_screenshot}→\texttt{table\_or\_form}
+(1)\texttt{table\_or\_form}→\texttt{diagram} (1) \\
+\texttt{Qwen/Qwen3.6-35B-A3B-FP8\ {[}thinking=false{]}} &
+\texttt{diagram}→\texttt{table\_or\_form}
+(4)\texttt{logo\_or\_mark}→\texttt{seal}
+(4)\texttt{decorative}→\texttt{diagram}
+(2)\texttt{table\_or\_form}→\texttt{diagram}
+(2)\texttt{logo\_or\_mark}→\texttt{arrow\_only} (1) \\
+\texttt{gpt-5-nano} & \texttt{logo\_or\_mark}→\texttt{seal}
+(6)\texttt{logo\_or\_mark}→\texttt{text\_as\_image}
+(2)\texttt{decorative}→\texttt{text\_as\_image}
+(2)\texttt{diagram}→\texttt{text\_as\_image}
+(2)\texttt{arrow\_only}→\texttt{table\_or\_form} (1) \\
+\end{longtable}
+}
+
+\end{document}

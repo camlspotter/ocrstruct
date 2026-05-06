@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="484" viewBox="0 0 1100 484">
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;fill:#222} .small{font-size:12px} .bar{fill:#4c78a8} .axis{stroke:#666;stroke-width:1} .grid{stroke:#ddd;stroke-width:1}</style>
+<text x="550.0" y="28" text-anchor="middle" font-size="20">gold set 総合スコア</text>
+<line class="grid" x1="300.0" y1="50" x2="300.0" y2="454"/>
+<text class="small" x="300.0" y="476" text-anchor="middle">0.0</text>
+<line class="grid" x1="452.0" y1="50" x2="452.0" y2="454"/>
+<text class="small" x="452.0" y="476" text-anchor="middle">0.2</text>
+<line class="grid" x1="604.0" y1="50" x2="604.0" y2="454"/>
+<text class="small" x="604.0" y="476" text-anchor="middle">0.4</text>
+<line class="grid" x1="756.0" y1="50" x2="756.0" y2="454"/>
+<text class="small" x="756.0" y="476" text-anchor="middle">0.6</text>
+<line class="grid" x1="908.0" y1="50" x2="908.0" y2="454"/>
+<text class="small" x="908.0" y="476" text-anchor="middle">0.8</text>
+<line class="grid" x1="1060.0" y1="50" x2="1060.0" y2="454"/>
+<text class="small" x="1060.0" y="476" text-anchor="middle">1.0</text>
+<text class="small" x="290" y="70.0" text-anchor="end">gpt-5.4</text>
+<rect class="bar" x="300" y="58.0" width="684.0" height="20" rx="3"/>
+<text class="small" x="990.0" y="72.0">0.900</text>
+<text class="small" x="290" y="104.0" text-anchor="end">gpt-5</text>
+<rect class="bar" x="300" y="92.0" width="673.2" height="20" rx="3"/>
+<text class="small" x="979.2" y="106.0">0.886</text>
+<text class="small" x="290" y="138.0" text-anchor="end">gpt-5.2</text>
+<rect class="bar" x="300" y="126.0" width="668.9" height="20" rx="3"/>
+<text class="small" x="974.9" y="140.0">0.880</text>
+<text class="small" x="290" y="172.0" text-anchor="end">Qwen3.6-27B-FP8 [thinking=false]</text>
+<rect class="bar" x="300" y="160.0" width="657.5" height="20" rx="3"/>
+<text class="small" x="963.5" y="174.0">0.865</text>
+<text class="small" x="290" y="206.0" text-anchor="end">gpt-5-mini</text>
+<rect class="bar" x="300" y="194.0" width="656.8" height="20" rx="3"/>
+<text class="small" x="962.8" y="208.0">0.864</text>
+<text class="small" x="290" y="240.0" text-anchor="end">gpt-5.4-mini</text>
+<rect class="bar" x="300" y="228.0" width="656.8" height="20" rx="3"/>
+<text class="small" x="962.8" y="242.0">0.864</text>
+<text class="small" x="290" y="274.0" text-anchor="end">Qwen3.6-27B-FP8</text>
+<rect class="bar" x="300" y="262.0" width="655.3" height="20" rx="3"/>
+<text class="small" x="961.3" y="276.0">0.862</text>
+<text class="small" x="290" y="308.0" text-anchor="end">gpt-5.4-nano</text>
+<rect class="bar" x="300" y="296.0" width="644.6" height="20" rx="3"/>
+<text class="small" x="950.6" y="310.0">0.848</text>
+<text class="small" x="290" y="342.0" text-anchor="end">Qwen3.6-35B-A3B-FP8</text>
+<rect class="bar" x="300" y="330.0" width="639.5" height="20" rx="3"/>
+<text class="small" x="945.5" y="344.0">0.842</text>
+<text class="small" x="290" y="376.0" text-anchor="end">Qwen3.6-35B-A3B-FP8 [thinking=false]</text>
+<rect class="bar" x="300" y="364.0" width="628.1" height="20" rx="3"/>
+<text class="small" x="934.1" y="378.0">0.826</text>
+<text class="small" x="290" y="410.0" text-anchor="end">gpt-5-nano</text>
+<rect class="bar" x="300" y="398.0" width="594.4" height="20" rx="3"/>
+<text class="small" x="900.4" y="412.0">0.782</text>
+<line class="axis" x1="300" y1="454" x2="1060" y2="454"/>
+</svg>
