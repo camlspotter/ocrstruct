@@ -17,6 +17,7 @@ dependencies = [
   "pydantic>=2.12.5",
   "mineru[core]==3.0.9",
   "openai>=2.31.0",
+  "python-dotenv>=1.2.2",
 ]
 
 [project.optional-dependencies]
@@ -27,6 +28,8 @@ dev = [
 
 [project.scripts]
 ocrstruct = "ocrstruct.cli:main"
+ocrstruct-screening = "ocrstruct.image_screening_cli:main"
+ocrstruct-understanding = "ocrstruct.image_understanding_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ocrstruct"]

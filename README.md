@@ -22,7 +22,14 @@ pip install -e .[dev]
 ## Quick Start
 
 ```python
-from ocrstruct import convert_pdf_to_middle, result_to_markdown
+from ocrstruct import (
+    convert_pdf_to_middle,
+    image_understanding_from_screening,
+    image_refs_from_middle,
+    pricing_for_model,
+    result_to_markdown,
+    screening_result_from_image_ref,
+ )
 
 result = convert_pdf_to_middle(
     "/path/to/file.pdf",
@@ -32,6 +39,20 @@ result = convert_pdf_to_middle(
 
 print(result.extracted_by)
 print(result_to_markdown(result))
+
+refs = image_refs_from_middle(
+    result.middle,
+    pdf_path="/path/to/file.pdf",
+    middle_json_path="/tmp/ocrstruct-work/middle.json",
+)
+screening = screening_result_from_image_ref(refs[0], model="gpt-5.4-mini")
+understanding = image_understanding_from_screening(
+    refs[0],
+    screening,
+    model="gpt-5.4-mini",
+    pricing=pricing_for_model("gpt-5.4-mini"),
+)
+print(understanding.short_description)
 ```
 
 ## CLI
@@ -49,6 +70,19 @@ uv run python -m ocrstruct.cli sample.pdf
 
 # Skip seal OCR if your PDFs rarely contain seals/stamps
 uv run python -m ocrstruct.cli --disable-seal sample.pdf
+
+# Generate image screening JSONL directly from middle.json
+uv run ocrstruct-screening \
+  --middle-json /tmp/ocrstruct-work/middle.json \
+  --out /tmp/ocrstruct-work/image_screening.jsonl \
+  --model gpt-5.4-mini
+
+# Generate understanding JSONL from prior screening results
+uv run ocrstruct-understanding \
+  --screening-results screening/screening_result_for_understanding.jsonl \
+  --out understanding/image_understanding_results.jsonl \
+  --model gpt-5.4-mini \
+  --skip-existing
 ```
 
 Example `ocrstruct/style.html`:
@@ -90,6 +124,13 @@ Public API (from `ocrstruct.__init__`):
 - `result_to_html(result)`
 - `middle_to_html(middle)`
 - `markdown_to_html(markdown_text)`
+- `image_refs_from_middle(middle, *, pdf_path, middle_json_path)`
+- `load_image_refs_from_middle_json(middle_json_path, *, pdf_path=None)`
+- `screening_result_from_image_ref(ref, *, model, base_url=None, api_key=None, thinking=False)`
+- `image_understanding_from_screening(ref, screening, *, model, base_url=None, api_key=None, pricing, thinking=False)`
+- `load_screening_records_jsonl(path, *, screening_thinking=None)`
+- `iter_understanding_records_from_screening(screening_records, *, model, pricing, base_url=None, api_key=None, thinking=False, existing_keys=None)`
+- `pricing_for_model(model, pricing_overrides=None)`
 - `Middle`, `Result`, `PageInfo`, `Block`, `Line`, `Span`, `BBox`
 
 ## Environment Variables

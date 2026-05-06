@@ -1,0 +1,227 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from ocrstruct.image_understanding import (
+    ImageRef,
+    ImageUnderstanding,
+    ImageUnderstandingRunResult,
+    ModelPricing,
+    RunStatus,
+    ScreeningRecord,
+    ScreeningResult,
+    ScreeningRunView,
+    ScreeningSource,
+    UnderstandingRecord,
+    iter_understanding_records_from_screening,
+    load_completed_understanding_keys,
+    load_image_refs_from_middle_json,
+    load_pricing_overrides,
+    load_screening_records_jsonl,
+)
+from ocrstruct.middle import Block, Line, Middle, PageInfo, Result, Span
+
+
+def _screening_record() -> ScreeningRecord:
+    ref = ImageRef(
+        pdf_path="/tmp/sample.pdf",
+        middle_json_path="/tmp/middle.json",
+        page_idx=0,
+        block_index=1,
+        block_type="image",
+        image_path="sample.png",
+    )
+    return ScreeningRecord(
+        ref=ref,
+        model="screening-model",
+        thinking=False,
+        resolved_thinking=False,
+        base_url="http://localhost:18000/v1",
+        started_at="2026-05-01T00:00:00+00:00",
+        latency_sec=1.0,
+        status=RunStatus(ok=True),
+        run=ScreeningRunView(
+            kind="diagram",
+            rag_value="high",
+            detail_level="short",
+            notes="sample",
+            raw_text='{"kind":"diagram"}',
+        ),
+    )
+
+
+def test_load_screening_records_jsonl_filters_failed_and_thinking(tmp_path: Path) -> None:
+    ok_record = _screening_record()
+    failed_record = ok_record.model_copy(update={"status": RunStatus(ok=False, error="boom")})
+    thinking_record = ok_record.model_copy(update={"thinking": True})
+    path = tmp_path / "screening.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                ok_record.model_dump_json(),
+                failed_record.model_dump_json(),
+                thinking_record.model_dump_json(),
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    records = load_screening_records_jsonl(path, screening_thinking=False)
+
+    assert len(records) == 1
+    assert records[0].thinking is False
+
+
+def test_load_completed_understanding_keys_keeps_success_rows_only(tmp_path: Path) -> None:
+    screening_record = _screening_record()
+    assert screening_record.run is not None
+    success = UnderstandingRecord(
+        ref=screening_record.ref,
+        screening=ScreeningSource(
+            model=screening_record.model,
+            thinking=screening_record.thinking,
+            resolved_thinking=screening_record.resolved_thinking,
+            base_url=screening_record.base_url,
+            started_at=screening_record.started_at,
+            latency_sec=screening_record.latency_sec,
+            run=screening_record.run,
+        ),
+        model="understanding-model",
+        thinking=False,
+        resolved_thinking=False,
+        base_url=None,
+        started_at="2026-05-01T00:00:01+00:00",
+        latency_sec=2.0,
+        status=RunStatus(ok=True),
+        run=None,
+    )
+    failed = success.model_copy(update={"status": RunStatus(ok=False, error="boom")})
+    path = tmp_path / "understanding.jsonl"
+    path.write_text(
+        "\n".join([success.model_dump_json(), failed.model_dump_json()]),
+        encoding="utf-8",
+    )
+
+    keys = load_completed_understanding_keys(path)
+
+    assert len(keys) == 1
+
+
+def test_iter_understanding_records_from_screening_skips_existing_and_yields_success(
+    monkeypatch,
+) -> None:
+    screening_record = _screening_record()
+
+    def fake_run(
+        ref: ImageRef,
+        screening: ScreeningResult,
+        *,
+        model: str,
+        base_url: str | None = None,
+        api_key: str | None = None,
+        pricing: ModelPricing,
+        thinking: bool = False,
+    ) -> ImageUnderstandingRunResult:
+        assert ref == screening_record.ref
+        assert screening.kind == "diagram"
+        assert model == "understanding-model"
+        assert pricing.input_per_million_usd == 1.0
+        assert thinking is False
+        return ImageUnderstandingRunResult(
+            model=model,
+            base_url=base_url,
+            started_at="2026-05-01T00:00:02+00:00",
+            raw_text='{"keywords":["k"]}',
+            result=ImageUnderstanding(
+                ref=ref,
+                kind=screening.kind,
+                rag_value=screening.rag_value,
+                detail_level=screening.detail_level,
+                keywords=["k"],
+                short_description="short",
+            ),
+        )
+
+    monkeypatch.setattr(
+        "ocrstruct.image_understanding.image_understanding_run_from_screening",
+        fake_run,
+    )
+
+    records = list(
+        iter_understanding_records_from_screening(
+            [screening_record],
+            model="understanding-model",
+            pricing=ModelPricing(input_per_million_usd=1.0, output_per_million_usd=2.0),
+        )
+    )
+
+    assert len(records) == 1
+    assert records[0].status.ok is True
+    assert records[0].run is not None
+    assert records[0].run.short_description == "short"
+
+    skipped = list(
+        iter_understanding_records_from_screening(
+            [screening_record],
+            model="understanding-model",
+            pricing=ModelPricing(input_per_million_usd=1.0, output_per_million_usd=2.0),
+            existing_keys={
+                (
+                    "understanding-model",
+                    False,
+                    "screening-model",
+                    False,
+                    ("/tmp/middle.json", 0, 1, "sample.png"),
+                )
+            },
+        )
+    )
+
+    assert skipped == []
+
+
+def test_load_pricing_overrides_reads_model_map(tmp_path: Path) -> None:
+    path = tmp_path / "pricing.json"
+    path.write_text(
+        '{"demo-model":{"input_per_million_usd":1.5,"output_per_million_usd":2.5}}',
+        encoding="utf-8",
+    )
+
+    pricing = load_pricing_overrides(path)
+
+    assert pricing["demo-model"].input_per_million_usd == 1.5
+
+
+def test_load_image_refs_from_middle_json_reads_result_wrapper(tmp_path: Path) -> None:
+    middle_path = tmp_path / "middle.json"
+    result = Result(
+        middle_json=Middle(
+            pdf_info=[
+                PageInfo(
+                    page_idx=0,
+                    page_size=(100, 100),
+                    para_blocks=[
+                        Block(
+                            type="image",
+                            index=7,
+                            blocks=[
+                                Block(
+                                    type="image_body",
+                                    lines=[Line(spans=[Span(type="image", image_path="sample.png")])],
+                                )
+                            ],
+                        )
+                    ],
+                )
+            ]
+        ),
+        extracted_by="mineru/pipeline",
+    )
+    result.save_json(middle_path)
+
+    refs = load_image_refs_from_middle_json(middle_path, pdf_path="/tmp/sample.pdf")
+
+    assert len(refs) == 1
+    assert refs[0].middle_json_path == str(middle_path)
+    assert refs[0].image_path == "sample.png"
+    assert refs[0].block_index == 7

@@ -1592,6 +1592,7 @@ dependencies = [
     { name = "mineru", extra = ["core"] },
     { name = "openai" },
     { name = "pydantic" },
+    { name = "python-dotenv" },
 ]
 
 [package.optional-dependencies]
@@ -1613,6 +1614,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.408" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
 ]
 provides-extras = ["dev"]
 

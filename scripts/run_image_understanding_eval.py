@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ocrstruct.image_screening_cli import main
+from ocrstruct.image_understanding_cli import main
 
 
 if __name__ == "__main__":
