@@ -68,6 +68,37 @@ def test_middle_to_markdown_can_expand_multicell_tables_for_llm() -> None:
     assert "<table>" not in rendered
 
 
+def test_middle_to_markdown_keeps_inline_math_markers_in_markdown_tables() -> None:
+    middle = _middle_with_table(
+        "<table><tr><th>col</th></tr><tr><td><eq>\\alpha + \\beta</eq></td></tr></table>"
+    )
+
+    rendered = middle_to_markdown(
+        middle,
+        options=RenderOptions(table_multicell_mode="repeat"),
+    )
+
+    assert "| col |" in rendered
+    assert "| $\\alpha+ \\beta$ |" in rendered
+
+
+def test_middle_to_markdown_can_render_table_math_as_unicode_text() -> None:
+    middle = _middle_with_table(
+        "<table><tr><th>col</th></tr><tr><td><eq>\\alpha + \\beta</eq></td></tr></table>"
+    )
+
+    rendered = middle_to_markdown(
+        middle,
+        options=RenderOptions(
+            table_multicell_mode="repeat",
+            render_latex_as_unicode_text=True,
+        ),
+    )
+
+    assert "| col |" in rendered
+    assert "| $α+ β$ |" in rendered
+
+
 def test_middle_to_markdown_can_render_image_understanding_summary() -> None:
     middle = Middle(
         pdf_info=[

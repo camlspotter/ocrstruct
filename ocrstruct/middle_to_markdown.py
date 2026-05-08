@@ -4,11 +4,16 @@ from dataclasses import dataclass
 from html import escape
 from typing import Literal, cast
 
-from ocrstruct.middle import Block, Content, ImageUnderstandingSummary, Line, Middle, PageInfo, Result, Span
+from ocrstruct.math import render_math_text
+from ocrstruct.middle import (
+    Block, Content, ImageUnderstandingSummary, Line, Middle, PageInfo, Result, Span,
+    block_title_level
+)
 from ocrstruct.table import MultiCellMode, encode_html_table_eq_tokens, html_tables_to_markdown
 
 
 type ImageUnderstandingRenderMode = Literal["short", "long"]
+type ImageUnderstandingMode = Literal["html", "rag"]
 
 
 @dataclass(frozen=True)
@@ -20,7 +25,9 @@ class RenderOptions:
     include_page_footnotes: bool = True
     include_aside_text: bool = True
     include_images: bool = True
-    include_image_understanding: bool = False
+    include_source_image_links: bool = True
+    render_latex_as_unicode_text: bool = False
+    include_image_understanding: ImageUnderstandingMode | None = None
     image_understanding_render_mode: ImageUnderstandingRenderMode = "short"
     table_multicell_mode: MultiCellMode | None = None
 
@@ -72,7 +79,7 @@ def block_to_markdown(block: Block, *, options: RenderOptions) -> str:
         return ""
 
     if block_type in {"title", "doc_title", "paragraph_title"}:
-        title = _block_text(block)
+        title = _block_text(block, options=options)
         if not title:
             return ""
         level = block.level
@@ -109,7 +116,7 @@ def block_to_markdown(block: Block, *, options: RenderOptions) -> str:
         "code_footnote",
         "algorithm_caption",
     }:
-        return _block_text(block)
+        return _block_text(block, options=options)
 
     if block_type in {"list", "index"}:
         return _list_block_to_markdown(block, options=options)
@@ -118,7 +125,7 @@ def block_to_markdown(block: Block, *, options: RenderOptions) -> str:
         return _code_block_to_markdown(block, options=options)
 
     if block_type in {"interline_equation", "equation", "formula_number"}:
-        return _equation_block_to_markdown(block)
+        return _equation_block_to_markdown(block, options=options)
 
     if block_type in {"image", "image_body", "chart", "chart_body", "seal", "header_image", "footer_image"}:
         return _media_block_to_markdown(block, options=options)
@@ -126,24 +133,32 @@ def block_to_markdown(block: Block, *, options: RenderOptions) -> str:
     if block_type in {"table", "table_body"}:
         return _table_block_to_markdown(block, options=options)
 
-    body = _block_text(block)
+    body = _block_text(block, options=options)
     child_parts = _child_block_parts(block, options=options)
     return _join_blocks([body, *child_parts])
 
 
-def line_to_markdown(line: Line) -> str:
-    return "".join(span_to_markdown(span) for span in line.spans).strip()
+def line_to_markdown(line: Line, *, options: RenderOptions) -> str:
+    return "".join(span_to_markdown(span, options=options) for span in line.spans).strip()
 
 
-def span_to_markdown(span: Span) -> str:
+def span_to_markdown(span: Span, *, options: RenderOptions) -> str:
     content = _content_to_text(span.content)
 
     if span.type == "inline_equation":
-        return _wrap_inline_math(content)
+        return render_math_text(
+            content,
+            render_latex_as_unicode_text=options.render_latex_as_unicode_text,
+            display=False,
+        )
     if span.type == "hyperlink":
         return content
     if span.type == "equation":
-        return _wrap_inline_math(content)
+        return render_math_text(
+            content,
+            render_latex_as_unicode_text=options.render_latex_as_unicode_text,
+            display=False,
+        )
     if span.type in {"image", "chart", "seal"} and span.image_path:
         return f"![]({_render_image_path(span.image_path)})"
     if span.type == "table":
@@ -152,7 +167,11 @@ def span_to_markdown(span: Span) -> str:
         return content
     if span.type == "interline_equation":
         if content:
-            return content
+            return render_math_text(
+                content,
+                render_latex_as_unicode_text=options.render_latex_as_unicode_text,
+                display=True,
+            )
         if span.image_path:
             return f"![]({_render_image_path(span.image_path)})"
         return ""
@@ -163,7 +182,7 @@ def _list_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
     if block.blocks:
         items: list[str] = []
         for child in block.blocks:
-            text = _block_text(child)
+            text = _block_text(child, options=options)
             if not text:
                 text = block_to_markdown(child, options=options).strip()
             if text:
@@ -171,7 +190,7 @@ def _list_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
         if items:
             return "\n".join(items)
 
-    lines = [line_to_markdown(line) for line in block.lines]
+    lines = [line_to_markdown(line, options=options) for line in block.lines]
     lines = [line for line in lines if line]
     if not lines:
         return ""
@@ -179,9 +198,9 @@ def _list_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
 
 
 def _code_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
-    body = _block_text(_first_child_of_type(block, {"code_body"}) or block)
+    body = _block_text(_first_child_of_type(block, {"code_body"}) or block, options=options)
     if not body:
-        body = _block_text(block)
+        body = _block_text(block, options=options)
     lang = block.guess_lang or ""
     fenced = f"```{lang}\n{body}\n```".strip()
     image_path = _find_first_image_path(block)
@@ -195,11 +214,15 @@ def _code_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
     return _join_blocks([fenced, *extra])
 
 
-def _equation_block_to_markdown(block: Block) -> str:
-    text = _block_text(block)
+def _equation_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
+    text = _block_text(block, options=options)
     if text:
         image_path = _find_first_image_path(block)
-        out = f"$$\n{text}\n$$"
+        out = render_math_text(
+            text,
+            render_latex_as_unicode_text=options.render_latex_as_unicode_text,
+            display=True,
+        )
         if image_path:
             out = f"{out}\n{source_image_link(image_path)}"
         return out
@@ -241,9 +264,9 @@ def _media_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
         if child.type not in {"image_body", "chart_body"}
     )
     if not parts:
-        text = _block_text(block)
-        if text:
-            parts.append(text)
+            text = _block_text(block, options=options)
+            if text:
+                parts.append(text)
     return _join_blocks(parts)
 
 
@@ -261,6 +284,7 @@ def _table_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
             table_md = html_tables_to_markdown(
                 html,
                 multicell_mode=options.table_multicell_mode,
+                render_latex_as_unicode_text=options.render_latex_as_unicode_text,
             )
         if image_path:
             table_md = f"{table_md}\n{source_image_link(image_path)}"
@@ -386,8 +410,8 @@ def _select_image_understanding_description(
     return understanding.short_description or understanding.long_description
 
 
-def _block_text(block: Block) -> str:
-    lines = [line_to_markdown(line) for line in block.lines]
+def _block_text(block: Block, *, options: RenderOptions) -> str:
+    lines = [line_to_markdown(line, options=options) for line in block.lines]
     lines = [line for line in lines if line]
     return "\n".join(lines).strip()
 
@@ -402,12 +426,6 @@ def _content_to_text(content: Content | None) -> str:
 
 def _join_blocks(parts: list[str]) -> str:
     return "\n\n".join(part for part in parts if part).strip()
-
-
-def _wrap_inline_math(text: str) -> str:
-    if not text:
-        return ""
-    return f"${text}$"
 
 
 def _render_image_path(image_path: str) -> str:

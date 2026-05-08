@@ -5,6 +5,8 @@ import re
 from typing import Literal
 from bs4 import BeautifulSoup, Tag
 
+from ocrstruct.math import render_math_text
+
 
 _TABLE_RE = re.compile(r"<table\b[^>]*>.*?</table>", re.IGNORECASE | re.DOTALL)
 _EQ_RE = re.compile(r"<eq>(.*?)</eq>", re.IGNORECASE | re.DOTALL)
@@ -17,6 +19,23 @@ def _normalize_cell_text(text: str) -> str:
     # Keep markdown table structure safe.
     s = s.replace("|", r"\|")
     return s
+
+
+def _cell_to_markdown_text(cell: Tag, *, render_latex_as_unicode_text: bool) -> str:
+    html = str(cell)
+    html = _EQ_RE.sub(
+        lambda m: render_math_text(
+            m.group(1),
+            render_latex_as_unicode_text=render_latex_as_unicode_text,
+            display=False,
+        ),
+        html,
+    )
+    parsed = BeautifulSoup(html, "html.parser")
+    reparsed_cell = parsed.find(cell.name)
+    if reparsed_cell is None:
+        return ""
+    return _normalize_cell_text(reparsed_cell.get_text(" ", strip=True))
 
 
 def _parse_span(value: object | None) -> int:
@@ -33,7 +52,12 @@ def _parse_span(value: object | None) -> int:
         return 1
 
 
-def _table_tag_to_markdown(table: Tag, multicell_mode: MultiCellMode) -> str | None:
+def _table_tag_to_markdown(
+    table: Tag,
+    multicell_mode: MultiCellMode,
+    *,
+    render_latex_as_unicode_text: bool,
+) -> str | None:
     trs = table.find_all("tr")
     if not trs:
         return None
@@ -68,7 +92,10 @@ def _table_tag_to_markdown(table: Tag, multicell_mode: MultiCellMode) -> str | N
                 rowspan_left[cidx] -= 1
                 cidx += 1
 
-            txt = _normalize_cell_text(cell.get_text(" ", strip=True))
+            txt = _cell_to_markdown_text(
+                cell,
+                render_latex_as_unicode_text=render_latex_as_unicode_text,
+            )
             rowspan = _parse_span(cell.get("rowspan"))
             colspan = _parse_span(cell.get("colspan"))
             has_multicell = rowspan > 1 or colspan > 1
@@ -124,7 +151,12 @@ def _table_tag_to_markdown(table: Tag, multicell_mode: MultiCellMode) -> str | N
     return "\n".join(lines)
 
 
-def html_tables_to_markdown(text: str, multicell_mode: MultiCellMode = "repeat") -> str:
+def html_tables_to_markdown(
+    text: str,
+    multicell_mode: MultiCellMode = "repeat",
+    *,
+    render_latex_as_unicode_text: bool = False,
+) -> str:
     """
     Convert inline HTML <table> blocks in markdown text to markdown tables when possible.
     multicell_mode:
@@ -141,7 +173,11 @@ def html_tables_to_markdown(text: str, multicell_mode: MultiCellMode = "repeat")
         table = soup.find("table")
         if table is None:
             return table_html
-        md = _table_tag_to_markdown(table, multicell_mode=multicell_mode)
+        md = _table_tag_to_markdown(
+            table,
+            multicell_mode=multicell_mode,
+            render_latex_as_unicode_text=render_latex_as_unicode_text,
+        )
         if md is None:
             return table_html
         return "\n" + md + "\n"
