@@ -34,10 +34,14 @@ def chunk_middle(
     bs : list[Block2]
     (ss, bs) = chunk_middle_no_overlap(m, o, nchars)
 
+    for s in ss:
+        assert s
+
     sps : list[tuple[str, int]] = []
     pos = 0
     for s in ss:
-        sps.append((s, pos))
+        if s:
+            sps.append((s, pos))
         pos += len(s)
 
     chunks : list[tuple[str,int]] = []
@@ -49,14 +53,16 @@ def chunk_middle(
             for l in ls:
                 # at least one line must be added
                 if buf != '' and len(s) + len(buf) + len(l) > totalchars:
-                    chunks.append((s + buf, pos))
+                    if s + buf:
+                        chunks.append((s + buf, pos))
                     done = True
                     break
                 buf += l
             if done:
                 break
         if not done:
-            chunks.append((s + buf, pos))
+            if s + buf:
+                chunks.append((s + buf, pos))
 
     all = ''.join(ss)
     for (s, pos) in chunks:
@@ -134,6 +140,7 @@ def chunk_middle_no_overlap(
             ss.extend(_chunk_block(bs__[0], nchars))
         else:
             ss.append(''.join([b.str for b in bs__]))
+    ss = [s for s in ss if s]
 
     # Check all the texts are in `ss`
     assert ''.join([b.str for b in bs]) == ''.join(ss)
