@@ -4,15 +4,23 @@ import argparse
 import logging
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+from ocrstruct.chunk import Chunk, chunk_middle
 from ocrstruct.html import result_to_html
 from ocrstruct.image_understanding import (
+    image_refs_from_middle,
+    iter_screening_records_from_refs,
+    iter_understanding_records_from_screening,
+    load_pricing_overrides,
+    load_screening_records_jsonl,
     load_understanding_records_jsonl,
     merge_understanding_into_middle,
+    pricing_for_model,
 )
 from ocrstruct.middle import Result
-from ocrstruct.middle_to_markdown import result_to_markdown, RenderOptions
+from ocrstruct.middle_to_markdown import RenderOptions, result_to_markdown
 from ocrstruct.pdf import convert_pdf_to_middle
-from ocrstruct.chunk import chunk_middle, Chunk
 import ocrstruct.utils as utils
 
 
@@ -59,6 +67,78 @@ def _merge_image_understanding_if_present(outdir: Path, *, result: Result) -> No
     logger.info("Merged image understanding: %s", understanding_jsonl_path)
 
 
+def _generate_image_understanding(
+    args: argparse.Namespace,
+    *,
+    outdir: Path,
+    pdf_path: Path,
+    result: Result,
+) -> None:
+    if not args.with_image_understanding:
+        return
+
+    if not args.image_screening_model:
+        raise ValueError("--with-image-understanding requires --image-screening-model")
+    if not args.image_understanding_model:
+        raise ValueError("--with-image-understanding requires --image-understanding-model")
+
+    middle_json_path = outdir / "middle.json"
+    refs = image_refs_from_middle(
+        result.middle_json,
+        pdf_path=str(pdf_path),
+        middle_json_path=str(middle_json_path),
+    )
+    if not refs:
+        logger.info("No image refs found for image understanding")
+        return
+
+    pricing_overrides = load_pricing_overrides(args.model_pricing_json)
+    screening_path = outdir / "image_screening.jsonl"
+    if args.lazy and screening_path.exists():
+        logger.info("Reusing image screening results: %s", screening_path)
+    else:
+        screening_path.parent.mkdir(parents=True, exist_ok=True)
+        with screening_path.open("w", encoding="utf-8") as handle:
+            for model in args.image_screening_model:
+                pricing = pricing_for_model(model, pricing_overrides)
+                for record in iter_screening_records_from_refs(
+                    refs,
+                    model=model,
+                    pricing=pricing,
+                    base_url=args.image_screening_base_url,
+                    api_key=args.image_screening_api_key,
+                    thinking=False,
+                ):
+                    handle.write(record.model_dump_json() + "\n")
+                    handle.flush()
+        logger.info("Wrote image screening results: %s", screening_path)
+
+    screening_records = load_screening_records_jsonl(screening_path)
+    if not screening_records:
+        logger.info("No successful screening records found for image understanding")
+        return
+
+    understanding_path = outdir / "image_understanding.jsonl"
+    if args.lazy and understanding_path.exists():
+        logger.info("Reusing image understanding results: %s", understanding_path)
+        return
+
+    with understanding_path.open("w", encoding="utf-8") as handle:
+        for model in args.image_understanding_model:
+            pricing = pricing_for_model(model, pricing_overrides)
+            for record in iter_understanding_records_from_screening(
+                screening_records,
+                model=model,
+                pricing=pricing,
+                base_url=args.image_understanding_base_url,
+                api_key=args.image_understanding_api_key,
+                thinking=False,
+            ):
+                handle.write(record.model_dump_json() + "\n")
+                handle.flush()
+    logger.info("Wrote image understanding results: %s", understanding_path)
+
+
 def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> None:
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
@@ -79,6 +159,12 @@ def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> None:
         lazy=args.lazy,
     )
 
+    _generate_image_understanding(
+        args,
+        outdir=outdir,
+        pdf_path=pdf_path,
+        result=result,
+    )
     _merge_image_understanding_if_present(outdir, result=result)
     middle = result.middle_json
 
@@ -94,8 +180,8 @@ def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> None:
             include_images= False,
             include_image_understanding= "rag",
         ),  
-        800,
-        1200,
+        args.chunk_chars,
+        args.chunk_overlap_chars,
     )
 
     _write_outputs(
@@ -107,6 +193,8 @@ def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> None:
 
 
 def main() -> int:
+    load_dotenv()
+
     parser = argparse.ArgumentParser(
         prog="ocrstruct",
         description="Convert PDF to middle.json, markdown, and HTML using MinerU.",
@@ -134,6 +222,56 @@ def main() -> int:
         "--lazy",
         action="store_true",
         help="reuse existing middle.json in the output directory when available",
+    )
+    parser.add_argument(
+        "--chunk-chars",
+        type=int,
+        default=800,
+        help="target chunk size in characters for chunks.json",
+    )
+    parser.add_argument(
+        "--chunk-overlap-chars",
+        type=int,
+        default=200,
+        help="overlap size in characters between adjacent chunks",
+    )
+    parser.add_argument(
+        "--with-image-understanding",
+        action="store_true",
+        help="also generate image_screening.jsonl and image_understanding.jsonl",
+    )
+
+    parser.add_argument(
+        "--image-screening-model",
+        action="append",
+        help="screening model to use for image understanding generation",
+    )
+    parser.add_argument(
+        "--image-screening-base-url",
+        help="OpenAI-compatible base URL for image screening generation",
+    )
+    parser.add_argument(
+        "--image-screening-api-key",
+        help="API key for image screening generation",
+    )
+
+    parser.add_argument(
+        "--image-understanding-model",
+        action="append",
+        help="understanding model to use for image understanding generation",
+    )
+    parser.add_argument(
+        "--image-understanding-base-url",
+        help="OpenAI-compatible base URL for image understanding generation",
+    )
+    parser.add_argument(
+        "--image-understanding-api-key",
+        help="API key for image understanding generation",
+    )
+
+    parser.add_argument(
+        "--model-pricing-json",
+        help="JSON file with model pricing overrides for screening and understanding generation",
     )
     parser.add_argument(
         "--log-level",
