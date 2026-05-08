@@ -4,7 +4,6 @@ import logging
 import re
 import unicodedata
 from typing import Literal, TypeAlias
-
 from pydantic import ConfigDict, Field
 
 from ocrstruct.utils import BaseModelWithSave
@@ -349,5 +348,11 @@ def block_title_level(b : Block) -> int|None:
                         return 2
             level = min(max(level, 1), 6)
             return level
+        # XXX short 1 line block may be handled as a pseudo title
+        # ex. (a) blahblah
+        # case "text":
+        #     if len(b.lines) == 1 and b.blocks == []:
+        #         print("XXXX", b.lines)
+        #     return None
         case _:
             return None
