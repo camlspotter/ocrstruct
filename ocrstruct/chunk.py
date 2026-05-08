@@ -76,7 +76,14 @@ def bind_blocks(cs : list[tuple[str,int]], bs : list[Block2]) -> list[Chunk]:
         end = start + len(s) - 1
 
         # drop blocks left of c
-        i = next((i for i, b in enumerate(bs_) if start <= b.pos))
+        try:
+            i = next((i for i, b in enumerate(bs_) if start <= b.pos))
+        except StopIteration:
+            print('cs', cs)
+            print('bs', bs)
+            print('c', c)
+            print('bs_', bs_)
+            assert False
         bs_ = bs_[i:]
 
         j = next((j for j, b in enumerate(bs_) if end < b.pos), len(bs_))
