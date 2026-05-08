@@ -136,7 +136,7 @@ def _table_tag_to_markdown(
 
     header_idx = 0 if has_header else None
     if header_idx is None:
-        header = [f"col{i+1}" for i in range(max_cols)]
+        header = [""] * max_cols
         body = grid
     else:
         header = grid[header_idx]

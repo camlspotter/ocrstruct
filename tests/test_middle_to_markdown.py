@@ -68,6 +68,20 @@ def test_middle_to_markdown_can_expand_multicell_tables_for_llm() -> None:
     assert "<table>" not in rendered
 
 
+def test_middle_to_markdown_does_not_invent_column_names_for_headerless_tables() -> None:
+    middle = _middle_with_table("<table><tr><td>A</td><td>B</td></tr></table>")
+
+    rendered = middle_to_markdown(
+        middle,
+        options=RenderOptions(table_multicell_mode="repeat"),
+    )
+
+    assert "| col1 |" not in rendered
+    assert "| col2 |" not in rendered
+    assert "|  |  |" in rendered
+    assert "| A | B |" in rendered
+
+
 def test_middle_to_markdown_keeps_inline_math_markers_in_markdown_tables() -> None:
     middle = _middle_with_table(
         "<table><tr><th>col</th></tr><tr><td><eq>\\alpha + \\beta</eq></td></tr></table>"
@@ -451,10 +465,10 @@ def test_middle_to_markdown_can_render_rag_image_understanding_summary() -> None
         options=RenderOptions(include_image_understanding="rag"),
     )
 
-    assert "[image-understanding] kind=diagram" in rendered
-    assert "path=sample.png" in rendered
+    assert "画像: kind=diagram" in rendered
+    assert "![](images/sample.png)" in rendered
     assert "keywords=workflow" in rendered
-    assert "説明: 短い説明" in rendered
+    assert "画像説明: 短い説明" in rendered
     assert 'class="image-understanding-layout"' not in rendered
 
 
