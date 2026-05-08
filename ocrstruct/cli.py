@@ -12,6 +12,8 @@ from ocrstruct.image_understanding import (
 from ocrstruct.middle import Result
 from ocrstruct.middle_to_markdown import result_to_markdown, RenderOptions
 from ocrstruct.pdf import convert_pdf_to_middle
+from ocrstruct.chunk import chunk_middle, Chunk
+import ocrstruct.utils as utils
 
 
 logger = logging.getLogger(__name__)
@@ -21,16 +23,27 @@ def _default_output_dir(pdf_path: Path) -> Path:
     return pdf_path.with_suffix("")
 
 
-def _write_outputs(outdir: Path, markdown_text: str, html_text: str | None) -> tuple[Path, Path | None]:
+def _write_outputs(
+    outdir: Path, 
+    markdown_text: str, 
+    html_text: str | None,
+    chunks : list[Chunk] | None,
+) -> None:
     text_md = outdir / "text.md"
     text_md.write_text(markdown_text, encoding="utf-8")
+    logger.info(f"wrote {text_md}")
+
     if html_text is None:
         logger.info("pandoc not found or failed; skip HTML conversion")
-        return text_md, None
+    else:
+        text_html = outdir / "text.html"
+        text_html.write_text(html_text, encoding="utf-8")
+        logger.info(f"wrote {text_html}")
 
-    text_html = outdir / "text.html"
-    text_html.write_text(html_text, encoding="utf-8")
-    return text_md, text_html
+    if chunks:
+        chunks_json = outdir / "chunks.json"
+        utils.save_json(list[Chunk], chunks_json, chunks)
+        logger.info(f"wrote {chunks_json}")
 
 
 def _merge_image_understanding_if_present(outdir: Path, *, result: Result) -> None:
@@ -46,7 +59,7 @@ def _merge_image_understanding_if_present(outdir: Path, *, result: Result) -> No
     logger.info("Merged image understanding: %s", understanding_jsonl_path)
 
 
-def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> Path:
+def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> None:
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
@@ -67,9 +80,10 @@ def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> Path:
     )
 
     _merge_image_understanding_if_present(outdir, result=result)
-
     middle = result.middle_json
-    from ocrstruct.chunk import chunk_middle
+
+    markdown_text = result_to_markdown(result)
+    html_text = result_to_html(result)
     chunked = chunk_middle(
         middle, 
         RenderOptions(
@@ -83,24 +97,13 @@ def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> Path:
         800,
         1200,
     )
-    for c in chunked.without_overlap:
-        print(c.str)
-        print('======')
 
-    markdown_text = result_to_markdown(result)
-    html_text = result_to_html(result)
-    text_md, text_html = _write_outputs(
+    _write_outputs(
         outdir,
         markdown_text,
         html_text,
+        chunked.with_overlap,
     )
-
-    logger.info("Wrote markdown: %s", text_md)
-    if text_html is not None:
-        logger.info("Wrote html: %s", text_html)
-    logger.info("Images dir: %s", outdir / "images")
-    logger.info("Middle JSON: %s", outdir / "middle.json")
-    return text_md
 
 
 def main() -> int:
@@ -145,12 +148,8 @@ def main() -> int:
     if len(args.pdf) > 1 and args.outdir:
         raise ValueError("--outdir cannot be used with multiple PDF inputs")
 
-    text_mds = [
+    for pdf_arg in args.pdf:
         _convert_one_pdf(args, Path(pdf_arg))
-        for pdf_arg in args.pdf
-    ]
-    for text_md in text_mds:
-        print(text_md)
     return 0
 
 
