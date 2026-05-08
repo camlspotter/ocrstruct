@@ -5,7 +5,12 @@ import logging
 from pathlib import Path
 
 from ocrstruct.html import result_to_html
-from ocrstruct.middle_to_markdown import result_to_markdown
+from ocrstruct.image_understanding import (
+    load_understanding_records_jsonl,
+    merge_understanding_into_middle,
+)
+from ocrstruct.middle import Result
+from ocrstruct.middle_to_markdown import result_to_markdown, RenderOptions
 from ocrstruct.pdf import convert_pdf_to_middle
 
 
@@ -28,6 +33,19 @@ def _write_outputs(outdir: Path, markdown_text: str, html_text: str | None) -> t
     return text_md, text_html
 
 
+def _merge_image_understanding_if_present(outdir: Path, *, result: Result) -> None:
+    understanding_jsonl_path = outdir / "image_understanding.jsonl"
+    if not understanding_jsonl_path.exists():
+        return
+
+    understanding_records = load_understanding_records_jsonl(understanding_jsonl_path)
+    result.middle_json = merge_understanding_into_middle(
+        result.middle_json,
+        understanding_records,
+    )
+    logger.info("Merged image understanding: %s", understanding_jsonl_path)
+
+
 def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> Path:
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
@@ -47,6 +65,27 @@ def _convert_one_pdf(args: argparse.Namespace, pdf_path: Path) -> Path:
         formula_enable=not args.disable_formula,
         lazy=args.lazy,
     )
+
+    _merge_image_understanding_if_present(outdir, result=result)
+
+    middle = result.middle_json
+    from ocrstruct.chunk import chunk_middle
+    chunked = chunk_middle(
+        middle, 
+        RenderOptions(
+            table_multicell_mode= 'repeat', 
+            image_understanding_render_mode= 'long',
+            include_source_image_links= False,
+            render_latex_as_unicode_text= True,
+            include_images= False,
+            include_image_understanding= "rag",
+        ),  
+        800,
+        1200,
+    )
+    for c in chunked.without_overlap:
+        print(c.str)
+        print('======')
 
     markdown_text = result_to_markdown(result)
     html_text = result_to_html(result)

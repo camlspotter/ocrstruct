@@ -37,6 +37,12 @@ def source_image_link(image_path: str) -> str:
     return f'<span class="source-image-link-row"><a href="{rendered_path}" class="source-image-link">👁️‍🗨️</a></span>'
 
 
+def _render_source_image_link(image_path: str, *, options: RenderOptions) -> str:
+    if not options.include_source_image_links:
+        return ""
+    return source_image_link(image_path)
+
+
 def result_to_markdown(result: Result, *, options: RenderOptions | None = None) -> str:
     return middle_to_markdown(result.middle_json, options=options)
 
@@ -82,15 +88,7 @@ def block_to_markdown(block: Block, *, options: RenderOptions) -> str:
         title = _block_text(block, options=options)
         if not title:
             return ""
-        level = block.level
-        if level is None:
-            if block_type == "doc_title":
-                level = 1
-            elif block_type == "paragraph_title":
-                level = 2
-            else:
-                level = 1
-        level = min(max(level, 1), 6)
+        level = block_title_level(block) or 2
         return f"{'#' * level} {title}"
 
     if block_type in {
@@ -205,7 +203,9 @@ def _code_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
     fenced = f"```{lang}\n{body}\n```".strip()
     image_path = _find_first_image_path(block)
     if image_path:
-        fenced = f"{fenced}\n{source_image_link(image_path)}"
+        source_link = _render_source_image_link(image_path, options=options)
+        if source_link:
+            fenced = f"{fenced}\n{source_link}"
     extra = [
         block_to_markdown(child, options=options)
         for child in block.blocks
@@ -224,7 +224,9 @@ def _equation_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
             display=True,
         )
         if image_path:
-            out = f"{out}\n{source_image_link(image_path)}"
+            source_link = _render_source_image_link(image_path, options=options)
+            if source_link:
+                out = f"{out}\n{source_link}"
         return out
 
     image_path = _find_first_image_path(block)
@@ -237,10 +239,12 @@ def _media_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
     parts: list[str] = []
     image_path = _find_first_image_path(block)
     understanding = _find_first_image_understanding(block)
+    understanding_mode = options.include_image_understanding
     if (
+        understanding_mode == "html"
+        and
         options.include_images
         and image_path is not None
-        and options.include_image_understanding
         and understanding is not None
     ):
         parts.append(
@@ -253,10 +257,19 @@ def _media_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
     else:
         if options.include_images and image_path:
             parts.append(f"![]({_render_image_path(image_path)})")
-        if options.include_image_understanding:
-            understanding_md = _render_image_understanding(understanding, options=options)
-            if understanding_md:
-                parts.append(understanding_md)
+        match understanding_mode:
+            case "html":
+                understanding_md = _render_image_understanding_html(understanding, options=options)
+                if understanding_md:
+                    parts.append(understanding_md)
+            case "rag":
+                understanding_md = _render_image_understanding_rag(
+                    understanding,
+                    image_path=image_path,
+                    options=options,
+                )
+                if understanding_md:
+                    parts.append(understanding_md)
 
     parts.extend(
         block_to_markdown(child, options=options)
@@ -287,7 +300,9 @@ def _table_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
                 render_latex_as_unicode_text=options.render_latex_as_unicode_text,
             )
         if image_path:
-            table_md = f"{table_md}\n{source_image_link(image_path)}"
+            source_link = _render_source_image_link(image_path, options=options)
+            if source_link:
+                table_md = f"{table_md}\n{source_link}"
         parts.append(table_md)
 
     parts.extend(
@@ -347,7 +362,7 @@ def _find_first_image_understanding(block: Block) -> ImageUnderstandingSummary |
     return None
 
 
-def _render_image_understanding(
+def _render_image_understanding_html(
     understanding: ImageUnderstandingSummary | None,
     *,
     options: RenderOptions,
@@ -363,9 +378,30 @@ def _render_image_understanding(
     mode_class = f"image-understanding--{options.image_understanding_render_mode}"
     return (
         f'<div class="image-understanding {mode_class}">'
-        f"<strong>画像理解:</strong> {escape(description)}"
+        f"<strong>{understanding.kind} 画像:</strong> {escape(description)}"
         "</div>"
     )
+
+
+def _render_image_understanding_rag(
+    understanding: ImageUnderstandingSummary | None,
+    *,
+    image_path: str | None,
+    options: RenderOptions,
+) -> str:
+    if understanding is None:
+        return ""
+    description = _select_image_understanding_description(
+        understanding,
+        options=options,
+    )
+    if description is None:
+        return ""
+    parts = [f"画像: kind={understanding.kind}"]
+    if understanding.keywords:
+        parts.append(f"keywords={', '.join(understanding.keywords)}")
+    parts.append(f"\n画像説明: {description}")
+    return " ".join(parts)
 
 
 def _render_media_with_understanding(
@@ -383,9 +419,11 @@ def _render_media_with_understanding(
         '<div class="image-understanding-layout">',
         '<div class="image-understanding-layout__media">',
         f'<img src="{escape(rendered_path)}" alt="" />',
-        source_image_link(image_path),
         "</div>",
     ]
+    source_link = _render_source_image_link(image_path, options=options)
+    if source_link:
+        media_html.insert(3, source_link)
     if description is not None:
         mode_class = f"image-understanding--{options.image_understanding_render_mode}"
         media_html.extend(

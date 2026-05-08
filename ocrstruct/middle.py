@@ -128,7 +128,6 @@ class Block(Model):
     page_num: int | None = None
     page_size: PageSize | None = None
 
-
 class PageInfo(Model):
     page_idx: int
     page_size: PageSize
@@ -335,3 +334,20 @@ def merge_discarded_blocks(middle: Middle) -> Middle:
     out.header_text_first_page = header_first_page
     out.footer_text_first_page = footer_first_page
     return out
+
+def block_title_level(b : Block) -> int|None:
+    match b.type:
+        case "title" | "doc_title" | "paragraph_title":
+            level = b.level
+            if level is None:
+                match b.type:
+                    case "doc_title":
+                        return 1
+                    case "paragraph_title":
+                        return 2
+                    case _:
+                        return 2
+            level = min(max(level, 1), 6)
+            return level
+        case _:
+            return None

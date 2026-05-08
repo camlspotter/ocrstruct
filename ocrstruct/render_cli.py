@@ -34,7 +34,7 @@ def _write_outputs(
 
 def _build_render_options(args: argparse.Namespace) -> RenderOptions:
     return RenderOptions(
-        include_image_understanding=True,
+        include_image_understanding="html",
         image_understanding_render_mode=args.image_understanding_render_mode,
     )
 
