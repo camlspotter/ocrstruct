@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import logging
 import mimetypes
@@ -1153,6 +1154,115 @@ def screening_record_ref_key(ref: ImageRef) -> tuple[str, int, int | None, str]:
     )
 
 
+def image_result_ref_key(ref: ImageResultRef) -> tuple[int, int | None, str]:
+    return (
+        ref.page_idx,
+        ref.block_index,
+        ref.image_path,
+    )
+
+
+def compute_middle_json_sha256(path: str | Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def image_result_ref_from_image_ref(ref: ImageRef) -> ImageResultRef:
+    return ImageResultRef(
+        page_idx=ref.page_idx,
+        block_index=ref.block_index,
+        block_type=ref.block_type,
+        image_path=ref.image_path,
+        caption=ref.caption,
+        nearby_text_before=ref.nearby_text_before,
+        nearby_text_after=ref.nearby_text_after,
+        section_title=ref.section_title,
+    )
+
+
+def image_result_from_understanding_record(record: UnderstandingRecord) -> ImageResult:
+    if not record.status.ok or record.run is None:
+        raise ValueError("UnderstandingRecord must be successful to convert to ImageResult")
+    screening_run = record.screening.run
+    return ImageResult(
+        ref=image_result_ref_from_image_ref(record.ref),
+        screening=FinalScreeningResult(
+            model=record.screening.model,
+            thinking=record.screening.thinking,
+            resolved_thinking=record.screening.resolved_thinking,
+            base_url=record.screening.base_url,
+            started_at=record.screening.started_at,
+            latency_sec=record.screening.latency_sec,
+            usage=screening_run.usage,
+            price=screening_run.price,
+            kind=screening_run.kind,
+            rag_value=screening_run.rag_value,
+            detail_level=screening_run.detail_level,
+            notes=screening_run.notes,
+            raw_text=screening_run.raw_text,
+        ),
+        understanding=FinalUnderstandingResult(
+            model=record.model,
+            thinking=record.thinking,
+            resolved_thinking=record.resolved_thinking,
+            base_url=record.base_url,
+            started_at=record.started_at,
+            latency_sec=record.latency_sec,
+            usage=record.run.usage,
+            price=record.run.price,
+            kind=cast(ImageKind, record.run.kind),
+            rag_value=cast(RagValue, record.run.rag_value),
+            detail_level=cast(DetailLevel, record.run.detail_level),
+            keywords=record.run.keywords,
+            notes=record.run.notes,
+            short_description=record.run.short_description,
+            long_description=record.run.long_description,
+            raw_text=record.run.raw_text,
+        ),
+    )
+
+
+def build_images_file(
+    records: Iterable[UnderstandingRecord],
+    *,
+    middle_json_path: str | Path,
+    generated_at: str | None = None,
+) -> ImagesFile:
+    items = [
+        image_result_from_understanding_record(record)
+        for record in records
+    ]
+    items.sort(
+        key=lambda item: (
+            item.ref.page_idx,
+            -1 if item.ref.block_index is None else item.ref.block_index,
+            item.ref.image_path,
+        )
+    )
+    return ImagesFile(
+        middle_json_sha256=compute_middle_json_sha256(middle_json_path),
+        generated_at=generated_at or datetime.now(UTC).isoformat(),
+        items=items,
+    )
+
+
+def load_images_file_json(
+    path: str | Path,
+    *,
+    middle_json_sha256: str | None = None,
+    middle_json_path: str | Path | None = None,
+) -> ImagesFile:
+    images_file = ImagesFile.load_json(path)
+    expected_sha256 = middle_json_sha256
+    if middle_json_path is not None:
+        computed_sha256 = compute_middle_json_sha256(middle_json_path)
+        if expected_sha256 is not None and expected_sha256 != computed_sha256:
+            raise ValueError("middle_json_sha256 does not match the supplied middle_json_path")
+        expected_sha256 = computed_sha256
+    if expected_sha256 is not None and images_file.middle_json_sha256 != expected_sha256:
+        raise ValueError("images.json does not match the requested middle.json hash")
+    return images_file
+
+
 def screening_record_key(record: ScreeningRecord) -> ScreeningRecordKey:
     return (record.model, record.thinking, screening_record_ref_key(record.ref))
 
@@ -1331,16 +1441,66 @@ def merge_understanding_into_middle(
     middle: Middle,
     records: Iterable[UnderstandingRecord],
 ) -> Middle:
-    record_by_ref: dict[tuple[int, int | None, str], UnderstandingRecord] = {}
+    summary_by_ref: dict[tuple[int, int | None, str], ImageUnderstandingSummary] = {}
     for record in records:
         if not record.status.ok or record.run is None:
             continue
-        key = (
+        summary_by_ref[(
             record.ref.page_idx,
             record.ref.block_index,
             record.ref.image_path,
+        )] = ImageUnderstandingSummary(
+            kind=record.run.kind,
+            rag_value=record.run.rag_value,
+            detail_level=record.run.detail_level,
+            keywords=record.run.keywords,
+            notes=record.run.notes,
+            short_description=record.run.short_description,
+            long_description=record.run.long_description,
+            model=record.model,
+            thinking=record.thinking,
+            screening_model=record.screening.model,
+            screening_thinking=record.screening.thinking,
+            status_ok=record.status.ok,
         )
-        record_by_ref[key] = record
+
+    return _merge_image_summaries_into_middle(
+        middle,
+        summary_by_ref,
+    )
+
+
+def merge_images_into_middle(
+    middle: Middle,
+    images_file: ImagesFile,
+) -> Middle:
+    summary_by_ref: dict[tuple[int, int | None, str], ImageUnderstandingSummary] = {}
+    for item in images_file.items:
+        summary_by_ref[image_result_ref_key(item.ref)] = ImageUnderstandingSummary(
+            kind=item.understanding.kind,
+            rag_value=item.understanding.rag_value,
+            detail_level=item.understanding.detail_level,
+            keywords=item.understanding.keywords,
+            notes=item.understanding.notes,
+            short_description=item.understanding.short_description,
+            long_description=item.understanding.long_description,
+            model=item.understanding.model,
+            thinking=item.understanding.thinking,
+            screening_model=item.screening.model,
+            screening_thinking=item.screening.thinking,
+            status_ok=True,
+        )
+
+    return _merge_image_summaries_into_middle(
+        middle,
+        summary_by_ref,
+    )
+
+
+def _merge_image_summaries_into_middle(
+    middle: Middle,
+    summary_by_ref: dict[tuple[int, int | None, str], ImageUnderstandingSummary],
+) -> Middle:
 
     merged = middle.model_copy(deep=True)
     for page in merged.pdf_info:
@@ -1348,19 +1508,19 @@ def merge_understanding_into_middle(
             _merge_understanding_into_block(
                 block,
                 page_idx=page.page_idx,
-                record_by_ref=record_by_ref,
+                summary_by_ref=summary_by_ref,
             )
         for block in page.discarded_blocks:
             _merge_understanding_into_block(
                 block,
                 page_idx=page.page_idx,
-                record_by_ref=record_by_ref,
+                summary_by_ref=summary_by_ref,
             )
         for block in page.preproc_blocks:
             _merge_understanding_into_block(
                 block,
                 page_idx=page.page_idx,
-                record_by_ref=record_by_ref,
+                summary_by_ref=summary_by_ref,
             )
     return merged
 
@@ -1369,7 +1529,7 @@ def _merge_understanding_into_block(
     block: Block,
     *,
     page_idx: int,
-    record_by_ref: dict[tuple[int, int | None, str], UnderstandingRecord],
+    summary_by_ref: dict[tuple[int, int | None, str], ImageUnderstandingSummary],
     owner_block_index: int | None = None,
 ) -> None:
     current_block_index = block.index if block.index is not None else owner_block_index
@@ -1379,13 +1539,13 @@ def _merge_understanding_into_block(
                 span,
                 page_idx=page_idx,
                 block_index=current_block_index,
-                record_by_ref=record_by_ref,
+                summary_by_ref=summary_by_ref,
             )
     for child in block.blocks:
         _merge_understanding_into_block(
             child,
             page_idx=page_idx,
-            record_by_ref=record_by_ref,
+            summary_by_ref=summary_by_ref,
             owner_block_index=current_block_index,
         )
 
@@ -1395,27 +1555,14 @@ def _merge_understanding_into_span(
     *,
     page_idx: int,
     block_index: int | None,
-    record_by_ref: dict[tuple[int, int | None, str], UnderstandingRecord],
+    summary_by_ref: dict[tuple[int, int | None, str], ImageUnderstandingSummary],
 ) -> None:
     if span.image_path is None:
         return
-    record = record_by_ref.get((page_idx, block_index, span.image_path))
-    if record is None or record.run is None:
+    summary = summary_by_ref.get((page_idx, block_index, span.image_path))
+    if summary is None:
         return
-    span.image_understanding = ImageUnderstandingSummary(
-        kind=record.run.kind,
-        rag_value=record.run.rag_value,
-        detail_level=record.run.detail_level,
-        keywords=record.run.keywords,
-        notes=record.run.notes,
-        short_description=record.run.short_description,
-        long_description=record.run.long_description,
-        model=record.model,
-        thinking=record.thinking,
-        screening_model=record.screening.model,
-        screening_thinking=record.screening.thinking,
-        status_ok=record.status.ok,
-    )
+    span.image_understanding = summary
 
 
 def iter_understanding_records_from_screening(
