@@ -121,6 +121,65 @@ class ImageUnderstandingFile(Model):
     items: list[ImageUnderstanding]
 
 
+class ImageResultRef(Model):
+    page_idx: int
+    block_index: int | None = None
+    block_type: ImageBlockType
+    image_path: str
+    caption: str | None = None
+    nearby_text_before: str | None = None
+    nearby_text_after: str | None = None
+    section_title: str | None = None
+
+
+class FinalScreeningResult(Model):
+    model: str
+    thinking: bool | None = None
+    resolved_thinking: bool | None = None
+    base_url: str | None = None
+    started_at: str | None = None
+    latency_sec: float
+    usage: TokenUsage | None = None
+    price: PriceEstimate | None = None
+    kind: ImageKind
+    rag_value: RagValue
+    detail_level: DetailLevel
+    notes: str | None = None
+    raw_text: str
+
+
+class FinalUnderstandingResult(Model):
+    model: str
+    thinking: bool = False
+    resolved_thinking: bool = False
+    base_url: str | None = None
+    started_at: str | None = None
+    latency_sec: float
+    usage: TokenUsage | None = None
+    price: PriceEstimate | None = None
+    kind: ImageKind
+    rag_value: RagValue
+    detail_level: DetailLevel
+    keywords: list[str] = Field(default_factory=list)
+    notes: str | None = None
+    short_description: str | None = None
+    long_description: str | None = None
+    raw_text: str
+
+
+class ImageResult(Model):
+    ref: ImageResultRef
+    screening: FinalScreeningResult
+    understanding: FinalUnderstandingResult
+
+
+class ImagesFile(Model):
+    version: Literal["1"] = "1"
+    middle_json_sha256: str
+    generated_at: str
+    items: list[ImageResult] = Field(default_factory=list)
+
+
 class StructuredOutputModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
