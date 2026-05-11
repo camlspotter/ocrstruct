@@ -70,13 +70,6 @@ def _usd(value: float) -> str:
     return f"${value:.3f}"
 
 
-def _text_or_dash(value: object) -> str:
-    if value is None:
-        return "-"
-    text = str(value)
-    return text if text else "-"
-
-
 def _summarize(rows: list[JsonDict]) -> list[JsonDict]:
     groups: dict[tuple[str, object], list[JsonDict]] = defaultdict(list)
     for row in rows:

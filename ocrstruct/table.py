@@ -185,17 +185,6 @@ def html_tables_to_markdown(
     return _TABLE_RE.sub(repl, text)
 
 
-def html_table_eq_to_mathjax(text: str) -> str:
-    if "<eq>" not in text.lower():
-        return text
-
-    def repl(m: re.Match[str]) -> str:
-        expr = m.group(1).strip()
-        return f'<span class="math inline">\\({expr}\\)</span>'
-
-    return _EQ_RE.sub(repl, text)
-
-
 def encode_html_table_eq_tokens(text: str) -> str:
     if "<eq>" not in text.lower():
         return text

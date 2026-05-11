@@ -118,10 +118,6 @@ class ImageUnderstanding(Model):
     long_description: str | None = None
 
 
-class ImageUnderstandingFile(Model):
-    items: list[ImageUnderstanding]
-
-
 class ImageResultRef(Model):
     page_idx: int
     block_index: int | None = None
@@ -920,23 +916,6 @@ Guidance:
     raise last_error
 
 
-def screening_result_from_image_ref(
-    ref: ImageRef,
-    *,
-    model: str,
-    base_url: str | None = None,
-    api_key: str | None = None,
-    thinking: bool = False,
-) -> ScreeningResult:
-    return screening_run_from_image_ref(
-        ref,
-        model=model,
-        base_url=base_url,
-        api_key=api_key,
-        thinking=thinking,
-    ).result
-
-
 def _image_understanding_from_payload(
     ref: ImageRef,
     screening: ScreeningResult,
@@ -1066,27 +1045,6 @@ def image_understanding_run_from_screening(
     if last_error is None:
         raise ValueError("Model returned no content")
     raise last_error
-
-
-def image_understanding_from_screening(
-    ref: ImageRef,
-    screening: ScreeningResult,
-    *,
-    model: str,
-    base_url: str | None = None,
-    api_key: str | None = None,
-    pricing: ModelPricing,
-    thinking: bool = False,
-) -> ImageUnderstanding:
-    return image_understanding_run_from_screening(
-        ref,
-        screening,
-        model=model,
-        base_url=base_url,
-        api_key=api_key,
-        pricing=pricing,
-        thinking=thinking,
-    ).result
 
 
 UnderstandingRecordKey: TypeAlias = tuple[

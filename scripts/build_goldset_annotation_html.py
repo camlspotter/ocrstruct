@@ -38,10 +38,6 @@ DETAIL_OPTIONS = (
 )
 
 
-class GoldsetSeedItem(dict[str, str]):
-    pass
-
-
 def _load_records(path: Path) -> list[EvalRecord]:
     return [
         EvalRecord.model_validate_json(line)

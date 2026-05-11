@@ -20,7 +20,6 @@ from ocrstruct.image_understanding import (
     compute_middle_json_sha256,
     image_refs_from_middle,
     image_result_from_understanding_record,
-    image_understanding_from_screening,
     image_understanding_run_from_screening,
     iter_screening_records_from_refs,
     iter_understanding_records_from_screening,
@@ -34,7 +33,6 @@ from ocrstruct.image_understanding import (
     merge_images_into_middle,
     merge_understanding_into_middle,
     pricing_for_model,
-    screening_result_from_image_ref,
 )
 from ocrstruct.middle import (
     BBox,
@@ -53,7 +51,7 @@ from ocrstruct.middle import (
     merge_discarded_blocks,
 )
 from ocrstruct.middle_to_markdown import middle_to_markdown, result_to_markdown
-from ocrstruct.pdf import LinkRegion, convert_pdf_to_middle, extract_pdf_link_regions
+from ocrstruct.pdf import LinkRegion, convert_pdf_to_middle
 
 
 __all__ = [
@@ -75,7 +73,6 @@ __all__ = [
     "build_images_file",
     "compute_middle_json_sha256",
     "convert_pdf_to_middle",
-    "extract_pdf_link_regions",
     "FinalScreeningResult",
     "FinalUnderstandingResult",
     "ImageKind",
@@ -88,7 +85,6 @@ __all__ = [
     "ImagesFile",
     "image_refs_from_middle",
     "image_result_from_understanding_record",
-    "image_understanding_from_screening",
     "image_understanding_run_from_screening",
     "iter_screening_records_from_refs",
     "iter_understanding_records_from_screening",
@@ -112,6 +108,5 @@ __all__ = [
     "RunStatus",
     "ScreeningRecord",
     "ScreeningResult",
-    "screening_result_from_image_ref",
     "UnderstandingRecord",
 ]
