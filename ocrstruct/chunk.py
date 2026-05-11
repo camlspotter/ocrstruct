@@ -32,7 +32,7 @@ def chunk_middle(
 
     ss : list[str]
     bs : list[Block2]
-    (ss, bs) = chunk_middle_no_overlap(m, o, nchars)
+    (ss, bs) = _chunk_middle_no_overlap(m, o, nchars)
 
     for s in ss:
         assert s
@@ -69,12 +69,12 @@ def chunk_middle(
         assert all[pos:pos+len(s)] == s
 
     return Chunked(
-        without_overlap= bind_blocks(sps, bs), 
-        with_overlap= bind_blocks(chunks, bs)
+        without_overlap= _bind_blocks(sps, bs), 
+        with_overlap= _bind_blocks(chunks, bs)
     )
 
 
-def bind_blocks(cs : list[tuple[str,int]], bs : list[Block2]) -> list[Chunk]:
+def _bind_blocks(cs : list[tuple[str,int]], bs : list[Block2]) -> list[Chunk]:
     bs_ = bs
     chunks : list[Chunk] = []
     for c in cs:
@@ -107,7 +107,7 @@ def bind_blocks(cs : list[tuple[str,int]], bs : list[Block2]) -> list[Chunk]:
     return chunks
 
 
-def chunk_middle_no_overlap(
+def _chunk_middle_no_overlap(
     m : Middle, 
     o : RenderOptions, 
     nchars : int
