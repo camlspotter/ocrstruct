@@ -22,37 +22,21 @@ pip install -e .[dev]
 ## Quick Start
 
 ```python
-from ocrstruct import (
+from ocrstruct.api import (
     convert_pdf_to_middle,
-    image_understanding_from_screening,
-    image_refs_from_middle,
-    pricing_for_model,
+    merge_discarded_blocks,
     result_to_markdown,
-    screening_result_from_image_ref,
- )
+)
 
 result = convert_pdf_to_middle(
     "/path/to/file.pdf",
     outdir="/tmp/ocrstruct-work",
     seal_enable=False,
 )
+result.middle_json = merge_discarded_blocks(result.middle_json)
 
 print(result.extracted_by)
 print(result_to_markdown(result))
-
-refs = image_refs_from_middle(
-    result.middle,
-    pdf_path="/path/to/file.pdf",
-    middle_json_path="/tmp/ocrstruct-work/middle.json",
-)
-screening = screening_result_from_image_ref(refs[0], model="gpt-5.4-mini")
-understanding = image_understanding_from_screening(
-    refs[0],
-    screening,
-    model="gpt-5.4-mini",
-    pricing=pricing_for_model("gpt-5.4-mini"),
-)
-print(understanding.short_description)
 ```
 
 ## CLI
@@ -116,9 +100,10 @@ th {
 
 ## API
 
-Public API (from `ocrstruct.__init__`):
+Recommended external API (from `ocrstruct.api`):
 
-- `convert_pdf_to_middle(pdf_path, *, outdir, backend=None, method=None, lang=None, server_url=None, seal_enable=True, formula_enable=True)`
+- `convert_pdf_to_middle(pdf_path, *, outdir, backend=None, method=None, lang=None, server_url=None, seal_enable=True, formula_enable=True, lazy=False)`
+- `merge_discarded_blocks(middle)`
 - `result_to_markdown(result)`
 - `middle_to_markdown(middle)`
 - `result_to_html(result)`
@@ -126,12 +111,19 @@ Public API (from `ocrstruct.__init__`):
 - `markdown_to_html(markdown_text)`
 - `image_refs_from_middle(middle, *, pdf_path, middle_json_path)`
 - `load_image_refs_from_middle_json(middle_json_path, *, pdf_path=None)`
-- `screening_result_from_image_ref(ref, *, model, base_url=None, api_key=None, thinking=False)`
-- `image_understanding_from_screening(ref, screening, *, model, base_url=None, api_key=None, pricing, thinking=False)`
+- `iter_screening_records_from_refs(refs, *, model, pricing, base_url=None, api_key=None, thinking=False, existing_keys=None)`
 - `load_screening_records_jsonl(path, *, screening_thinking=None)`
 - `iter_understanding_records_from_screening(screening_records, *, model, pricing, base_url=None, api_key=None, thinking=False, existing_keys=None)`
+- `image_understanding_run_from_screening(ref, screening, *, model, base_url=None, api_key=None, pricing, thinking=False)`
 - `pricing_for_model(model, pricing_overrides=None)`
-- `Middle`, `Result`, `PageInfo`, `Block`, `Line`, `Span`, `BBox`
+- `load_pricing_overrides(path)`
+- `build_images_file(records, *, middle_json_path, generated_at=None)`
+- `load_images_file_json(path, *, middle_json_sha256=None, middle_json_path=None)`
+- `merge_understanding_into_middle(middle, records)`
+- `merge_images_into_middle(middle, images_file)`
+- `compute_middle_json_sha256(path)`
+
+The package root `ocrstruct` still re-exports many symbols for compatibility, but `ocrstruct.api` is the intended stable function-level surface.
 
 ## Environment Variables
 
