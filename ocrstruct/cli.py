@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from ocrstruct.api import convert_one_pdf
+from ocrstruct.api import chunk_result, convert_one_pdf, render_result
 
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,9 @@ def main() -> int:
         raise ValueError("--outdir cannot be used with multiple PDF inputs")
 
     for pdf_arg in args.pdf:
-        convert_one_pdf(
+        pdf_path = Path(pdf_arg)
+        outdir = Path(args.outdir) if args.outdir else pdf_path.with_suffix("")
+        result = convert_one_pdf(
             pdf_path=Path(pdf_arg),
             outdir=args.outdir,
             backend=args.backend,
@@ -116,8 +118,6 @@ def main() -> int:
             seal_enable=not args.disable_seal,
             formula_enable=not args.disable_formula,
             lazy=args.lazy,
-            chunk_chars=args.chunk_chars,
-            chunk_overlap_chars=args.chunk_overlap_chars,
             with_image_understanding=args.with_image_understanding,
             image_screening_models=args.image_screening_model,
             image_screening_base_url=args.image_screening_base_url,
@@ -126,6 +126,13 @@ def main() -> int:
             image_understanding_base_url=args.image_understanding_base_url,
             image_understanding_api_key=args.image_understanding_api_key,
             model_pricing_json=args.model_pricing_json,
+        )
+        render_result(outdir, result)
+        chunk_result(
+            outdir,
+            result,
+            chunk_chars=args.chunk_chars,
+            chunk_overlap_chars=args.chunk_overlap_chars,
         )
     return 0
 

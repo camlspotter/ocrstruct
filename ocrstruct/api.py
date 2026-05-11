@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 import ocrstruct.utils as utils
-from ocrstruct.chunk import Chunk, chunk_middle
+from ocrstruct.chunk import Chunk, chunk_middle, Chunked
 from ocrstruct.html import markdown_to_html, middle_to_html, result_to_html
 from ocrstruct.image_understanding import (
     UnderstandingRecord,
@@ -28,35 +28,12 @@ from ocrstruct.image_understanding import (
     screening_record_key,
     understanding_record_key,
 )
-from ocrstruct.middle import Result, merge_discarded_blocks
+from ocrstruct.middle import Result, Middle, merge_discarded_blocks
 from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown, result_to_markdown
 from ocrstruct.pdf import convert_pdf_to_middle
 
 
 logger = logging.getLogger(__name__)
-
-
-def _write_outputs(
-    outdir: Path,
-    markdown_text: str,
-    html_text: str | None,
-    chunks: list[Chunk] | None,
-) -> None:
-    text_md = outdir / "text.md"
-    text_md.write_text(markdown_text, encoding="utf-8")
-    logger.info("wrote %s", text_md)
-
-    if html_text is None:
-        logger.info("pandoc not found or failed; skip HTML conversion")
-    else:
-        text_html = outdir / "text.html"
-        text_html.write_text(html_text, encoding="utf-8")
-        logger.info("wrote %s", text_html)
-
-    if chunks:
-        chunks_json = outdir / "chunks.json"
-        utils.save_json(list[Chunk], chunks_json, chunks)
-        logger.info("wrote %s", chunks_json)
 
 
 def _merge_image_understanding_if_present(outdir: Path, *, result: Result) -> None:
@@ -192,8 +169,6 @@ def convert_one_pdf(
     seal_enable: bool = True,
     formula_enable: bool = True,
     lazy: bool = False,
-    chunk_chars: int = 800,
-    chunk_overlap_chars: int = 200,
     with_image_understanding: bool = False,
     image_screening_models: list[str] | None = None,
     image_screening_base_url: str | None = None,
@@ -244,10 +219,17 @@ def convert_one_pdf(
             lazy=lazy,
         )
     _merge_image_understanding_if_present(resolved_outdir, result=result)
+    return result
 
-    markdown_text = result_to_markdown(result)
-    html_text = result_to_html(result)
-    chunked = chunk_middle(
+
+def chunk_result(
+    outdir: Path,
+    result: Result,
+    *,
+    chunk_chars : int,
+    chunk_overlap_chars : int,
+) -> Chunked:
+    chunks = chunk_middle(
         result.middle_json,
         RenderOptions(
             table_multicell_mode="repeat",
@@ -260,13 +242,26 @@ def convert_one_pdf(
         chunk_chars,
         chunk_overlap_chars,
     )
-    _write_outputs(
-        resolved_outdir,
-        markdown_text,
-        html_text,
-        chunked.with_overlap,
-    )
-    return result
+
+    chunks_json = outdir / "chunks.json"
+    utils.save_json(Chunked, chunks_json, chunks)
+    logger.info("wrote %s", chunks_json)
+    return chunks
+
+
+def render_result(outdir : Path, result : Result):
+    markdown_text = result_to_markdown(result)
+    text_md = outdir / "text.md"
+    text_md.write_text(markdown_text, encoding="utf-8")
+    logger.info("wrote %s", text_md)
+
+    html_text = result_to_html(result)
+    if html_text is None:
+        logger.info("pandoc not found or failed; skip HTML conversion")
+    else:
+        text_html = outdir / "text.html"
+        text_html.write_text(html_text, encoding="utf-8")
+        logger.info("wrote %s", text_html)
 
 
 __all__ = [
