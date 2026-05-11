@@ -99,15 +99,15 @@ def render_math_text(
         normalized = normalized.removeprefix("$$").removesuffix("$$").strip()
     if normalized.startswith("$") and normalized.endswith("$"):
         normalized = normalized.removeprefix("$").removesuffix("$").strip()
-    normalized = normalize_latex_math_spacing(normalized)
+    normalized = _normalize_latex_math_spacing(normalized)
     if render_latex_as_unicode_text:
-        normalized = latex_to_unicode_text(normalized)
+        normalized = _latex_to_unicode_text(normalized)
     if display:
         return f"$$\n{normalized}\n$$"
     return f"${normalized}$"
 
 
-def normalize_latex_math_spacing(text: str) -> str:
+def _normalize_latex_math_spacing(text: str) -> str:
     normalized = re.sub(r"\s+", " ", text).strip()
     normalized = re.sub(r"([_^])\s+", r"\1", normalized)
     normalized = re.sub(r"\s+([_^])", r"\1", normalized)
@@ -124,7 +124,7 @@ def normalize_latex_math_spacing(text: str) -> str:
     return normalized
 
 
-def latex_to_unicode_text(text: str) -> str:
+def _latex_to_unicode_text(text: str) -> str:
     rendered = text
     for macro in ("mathrm", "mathit", "mathbb"):
         rendered = re.sub(rf"\\{macro}\{{([^{{}}]+)\}}", r"{\1}", rendered)

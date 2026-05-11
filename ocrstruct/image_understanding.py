@@ -145,23 +145,10 @@ class FinalScreeningResult(Model):
     raw_text: str
 
 
-class FinalUnderstandingResult(Model):
-    model: str
-    thinking: bool = False
-    resolved_thinking: bool = False
-    base_url: str | None = None
-    started_at: str | None = None
-    latency_sec: float
-    usage: TokenUsage | None = None
-    price: PriceEstimate | None = None
-    kind: ImageKind
-    rag_value: RagValue
-    detail_level: DetailLevel
+class FinalUnderstandingResult(FinalScreeningResult):
     keywords: list[str] = Field(default_factory=list)
-    notes: str | None = None
     short_description: str | None = None
     long_description: str | None = None
-    raw_text: str
 
 
 class ImageResult(Model):
@@ -288,9 +275,6 @@ class UnderstandingRecord(Model):
     latency_sec: float
     status: RunStatus
     run: UnderstandingRunView | None = None
-
-
-LOCAL_JSON_RETRY_COUNT = 3
 
 
 DEFAULT_MODEL_PRICING: dict[str, ModelPricing] = {
@@ -674,10 +658,6 @@ def _apply_thinking_option(
             }
 
 
-def _supports_strict_structured_outputs(model: str) -> bool:
-    return True
-
-
 def _openai_strict_json_schema(schema_model: type[BaseModel]) -> dict[str, object]:
     schema = cast(dict[str, object], schema_model.model_json_schema())
     properties = cast(dict[str, object], schema.get("properties", {}))
@@ -696,21 +676,16 @@ def _image_json_request(
     schema_name: str,
     schema_model: type[BaseModel],
 ) -> dict[str, object]:
-    response_format: dict[str, object]
-    if _supports_strict_structured_outputs(model):
-        response_format = {
+    request: dict[str, object] = {
+        "model": model,
+        "response_format": {
             "type": "json_schema",
             "json_schema": {
                 "name": schema_name,
                 "strict": True,
                 "schema": _openai_strict_json_schema(schema_model),
             },
-        }
-    else:
-        response_format = {"type": "json_object"}
-    request: dict[str, object] = {
-        "model": model,
-        "response_format": response_format,
+        },
         "messages": [
             {
                 "role": "system",
@@ -771,64 +746,6 @@ def estimate_price(
     )
 
 
-def _normalize_keywords(value: object) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if isinstance(value, list) and all(isinstance(item, str) for item in value):
-        return [item.strip() for item in value if item.strip()]
-    raise ValueError(f"Invalid keywords value: {value!r}")
-
-
-def _normalize_optional_string(value: object) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, str):
-        text = value.strip()
-        return text or None
-    if isinstance(value, list) and all(isinstance(item, str) for item in value):
-        parts = [item.strip() for item in value if item.strip()]
-        if not parts:
-            return None
-        return "\n".join(parts)
-    raise ValueError(f"Invalid string value: {value!r}")
-
-
-def _normalize_required_string(value: object) -> str:
-    normalized = _normalize_optional_string(value)
-    if normalized is None:
-        raise ValueError("Required string field resolved to null")
-    return normalized
-
-
-def _rescue_screening_payload(content: str) -> ScreeningPayload:
-    raw = cast(dict[str, object], json.loads(content))
-    payload = {
-        "kind": raw.get("kind"),
-        "rag_value": raw.get("rag_value"),
-        "detail_level": raw.get("detail_level"),
-        "notes": _normalize_optional_string(raw.get("notes")),
-    }
-    return ScreeningPayload.model_validate(payload)
-
-
-def _rescue_understanding_payload(
-    detail_level: DetailLevel,
-    content: str,
-) -> StructuredOutputModel:
-    raw = cast(dict[str, object], json.loads(content))
-    payload: dict[str, object] = {
-        "keywords": _normalize_keywords(raw.get("keywords")),
-        "short_description": _normalize_required_string(raw.get("short_description")),
-        "notes": _normalize_optional_string(raw.get("notes")),
-    }
-    if detail_level == "long":
-        payload["long_description"] = _normalize_required_string(raw.get("long_description"))
-    return _understanding_payload_model(detail_level).model_validate(payload)
-
-
 def screening_run_from_image_ref(
     ref: ImageRef,
     *,
@@ -882,20 +799,15 @@ Guidance:
         schema_name="screening_result",
         schema_model=ScreeningPayload,
     )
-    strict_structured = _supports_strict_structured_outputs(model)
     last_error: Exception | None = None
-    attempts = 1 if strict_structured else LOCAL_JSON_RETRY_COUNT
-    for _attempt in range(attempts):
+    for _attempt in range(1):
         completion = client.chat.completions.create(**cast(Any, request))
         content = completion.choices[0].message.content
         if content is None:
             last_error = ValueError("Model returned no content")
             continue
         try:
-            if strict_structured:
-                payload = ScreeningPayload.model_validate_json(content)
-            else:
-                payload = _rescue_screening_payload(content)
+            payload = ScreeningPayload.model_validate_json(content)
             result = ScreeningResult.model_validate(payload.model_dump())
             usage = _usage_from_completion(completion)
             price = estimate_price(usage, pricing if pricing is not None else DEFAULT_MODEL_PRICING.get(model))
@@ -1011,21 +923,16 @@ def image_understanding_run_from_screening(
         schema_name=f"image_understanding_{screening.detail_level}",
         schema_model=_understanding_payload_model(screening.detail_level),
     )
-    strict_structured = _supports_strict_structured_outputs(model)
     payload_model = _understanding_payload_model(screening.detail_level)
     last_error: Exception | None = None
-    attempts = 1 if strict_structured else LOCAL_JSON_RETRY_COUNT
-    for _attempt in range(attempts):
+    for _attempt in range(1):
         completion = client.chat.completions.create(**cast(Any, request))
         content = completion.choices[0].message.content
         if content is None:
             last_error = ValueError("Model returned no content")
             continue
         try:
-            if strict_structured:
-                payload_obj = payload_model.model_validate_json(content)
-            else:
-                payload_obj = _rescue_understanding_payload(screening.detail_level, content)
+            payload_obj = payload_model.model_validate_json(content)
             payload = cast(dict[str, object], payload_obj.model_dump())
             result = _image_understanding_from_payload(ref, screening, payload)
             usage = _usage_from_completion(completion)
@@ -1443,7 +1350,7 @@ def merge_images_into_middle(
             short_description=item.understanding.short_description,
             long_description=item.understanding.long_description,
             model=item.understanding.model,
-            thinking=item.understanding.thinking,
+            thinking=bool(item.understanding.thinking),
             screening_model=item.screening.model,
             screening_thinking=item.screening.thinking,
             status_ok=True,
