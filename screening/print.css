@@ -1,0 +1,50 @@
+body {
+  font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+  line-height: 1.5;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th, td {
+  border: 1px solid #999;
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
+tr, td, th {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+h1, h2, h3 {
+  page-break-after: avoid;
+}
+
+@page {
+  size: A4;
+  margin: 15mm;
+}
+
+@media print {
+  body {
+    max-width: none;
+  }
+
+  a {
+    color: black;
+    text-decoration: none;
+  }
+}
