@@ -7,7 +7,7 @@ from typing import Literal, cast
 from ocrstruct.math import render_math_text
 from ocrstruct.middle import (
     Block, Content, ImageUnderstandingSummary, Line, Middle, PageInfo, Result, Span,
-    _content_to_text, block_title_level
+    block_title_level
 )
 from ocrstruct.table import MultiCellMode, encode_html_table_eq_tokens, html_tables_to_markdown
 
@@ -28,7 +28,7 @@ class RenderOptions:
     include_source_image_links: bool = True
     render_latex_as_unicode_text: bool = False
     include_image_understanding: ImageUnderstandingMode | None = None
-    image_understanding_render_mode: ImageUnderstandingRenderMode = "short"
+    image_understanding_render_mode: ImageUnderstandingRenderMode = "long"
     table_multicell_mode: MultiCellMode | None = None
 
 
@@ -452,6 +452,14 @@ def _block_text(block: Block, *, options: RenderOptions) -> str:
     lines = [line_to_markdown(line, options=options) for line in block.lines]
     lines = [line for line in lines if line]
     return "\n".join(lines).strip()
+
+
+def _content_to_text(content: Content | None) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    return "".join(cast(list[str], content))
 
 
 def _join_blocks(parts: list[str]) -> str:

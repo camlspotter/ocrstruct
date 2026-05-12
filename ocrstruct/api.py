@@ -246,16 +246,35 @@ def chunk_result(
     chunks_json = outdir / "chunks.json"
     utils.save_json(Chunked, chunks_json, chunks)
     logger.info("wrote %s", chunks_json)
+
+    chunks_md = outdir / "chunks.md"
+    open(chunks_md, 'w').write('-----\n'.join([c.str for c in chunks.without_overlap]))
+    logger.info("wrote %s", chunks_md)
+
     return chunks
 
 
 def render_result(outdir : Path, result : Result):
-    markdown_text = result_to_markdown(result)
+    markdown_text = result_to_markdown(
+        result,
+        options= RenderOptions(
+            include_image_understanding='rag',
+            image_understanding_render_mode='long',
+            table_multicell_mode='repeat',
+        )
+    )
     text_md = outdir / "text.md"
     text_md.write_text(markdown_text, encoding="utf-8")
     logger.info("wrote %s", text_md)
 
-    html_text = result_to_html(result)
+    html_text = result_to_html(
+        result, 
+        options= RenderOptions(
+            include_image_understanding='html',
+            image_understanding_render_mode='long',
+            table_multicell_mode='keep_html',
+        )
+    )
     if html_text is None:
         logger.info("pandoc not found or failed; skip HTML conversion")
     else:

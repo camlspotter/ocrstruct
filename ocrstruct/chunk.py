@@ -18,7 +18,7 @@ class Chunk(BaseModel):
 
 
 class Chunked(BaseModel):
-    without_overlap : list[Chunk]
+    without_overlap : list[Chunk] # Preserves the original text
     with_overlap : list[Chunk]
 
 
