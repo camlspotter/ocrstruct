@@ -4,7 +4,7 @@ import logging
 import re
 import unicodedata
 from typing import Literal, TypeAlias
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
 from ocrstruct.utils import BaseModelWithSave
 
@@ -16,6 +16,29 @@ type Content = str | list[str]
 
 logger = logging.getLogger(__name__)
 
+_SURROGATE_RE = re.compile(r"[\ud800-\udfff]")
+
+
+def _replace_surrogates(text: str) -> str:
+    return _SURROGATE_RE.sub("\ufffd", text)
+
+
+def _sanitize_strings(value: object) -> object:
+    match value:
+        case str():
+            return _replace_surrogates(value)
+        case list():
+            return [_sanitize_strings(item) for item in value]
+        case tuple():
+            return tuple(_sanitize_strings(item) for item in value)
+        case dict():
+            return {
+                _sanitize_strings(key): _sanitize_strings(item)
+                for key, item in value.items()
+            }
+        case _:
+            return value
+
 
 class Model(BaseModelWithSave):
     model_config = ConfigDict(
@@ -23,6 +46,13 @@ class Model(BaseModelWithSave):
         populate_by_name=True,
         serialize_by_alias=True,
     )
+
+    # Keep sanitization scoped to Middle and its nested models so MinerU text
+    # becomes JSON-safe without changing unrelated model families.
+    @model_validator(mode="before")
+    @classmethod
+    def _sanitize_input_strings(cls, value: object) -> object:
+        return _sanitize_strings(value)
 
 
 SpanType: TypeAlias = Literal[
