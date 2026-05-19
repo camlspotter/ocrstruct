@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from ocrstruct.api import chunk_result, convert_one_pdf, render_result
+from ocrstruct.api import convert_one_pdf, render_result
 
 
 logger = logging.getLogger(__name__)
@@ -41,18 +41,6 @@ def main() -> int:
         "--lazy",
         action="store_true",
         help="reuse existing middle.json in the output directory when available",
-    )
-    parser.add_argument(
-        "--chunk-chars",
-        type=int,
-        default=800,
-        help="target chunk size in characters for chunks.json",
-    )
-    parser.add_argument(
-        "--chunk-overlap-chars",
-        type=int,
-        default=200,
-        help="overlap size in characters between adjacent chunks",
     )
     parser.add_argument(
         "--with-image-understanding",
@@ -128,12 +116,6 @@ def main() -> int:
             model_pricing_json=args.model_pricing_json,
         )
         render_result(outdir, result)
-        chunk_result(
-            outdir,
-            result,
-            chunk_chars=args.chunk_chars,
-            chunk_overlap_chars=args.chunk_overlap_chars,
-        )
     return 0
 
 

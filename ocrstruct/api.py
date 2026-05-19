@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import ocrstruct.utils as utils
-from ocrstruct.chunk import Chunk, chunk_middle, Chunked
 from ocrstruct.html import markdown_to_html, middle_to_html, result_to_html
 from ocrstruct.image_understanding import (
     UnderstandingRecord,
@@ -220,38 +218,6 @@ def convert_one_pdf(
         )
     _merge_image_understanding_if_present(resolved_outdir, result=result)
     return result
-
-
-def chunk_result(
-    outdir: Path,
-    result: Result,
-    *,
-    chunk_chars : int,
-    chunk_overlap_chars : int,
-) -> Chunked:
-    chunks = chunk_middle(
-        result.middle_json,
-        RenderOptions(
-            table_multicell_mode="repeat",
-            image_understanding_render_mode="long",
-            include_source_image_links=False,
-            render_latex_as_unicode_text=True,
-            include_images=False,
-            include_image_understanding="rag",
-        ),
-        chunk_chars,
-        chunk_overlap_chars,
-    )
-
-    chunks_json = outdir / "chunks.json"
-    utils.save_json(Chunked, chunks_json, chunks)
-    logger.info("wrote %s", chunks_json)
-
-    chunks_md = outdir / "chunks.md"
-    open(chunks_md, 'w').write('-----\n'.join([c.str for c in chunks.without_overlap]))
-    logger.info("wrote %s", chunks_md)
-
-    return chunks
 
 
 def render_result(outdir : Path, result : Result):
