@@ -32,6 +32,26 @@ class RenderOptions:
     table_multicell_mode: MultiCellMode | None = None
 
 
+render_rag = RenderOptions(
+    include_images= False,
+    include_source_image_links= False,
+    render_latex_as_unicode_text= True,
+    include_image_understanding= 'rag',
+    image_understanding_render_mode= 'long',
+    table_multicell_mode= 'repeat'
+)
+
+
+render_html = RenderOptions(
+    include_images= True,
+    include_source_image_links= True,
+    render_latex_as_unicode_text= True,
+    include_image_understanding= 'html',
+    image_understanding_render_mode= 'long',
+    table_multicell_mode= 'keep_html'
+)
+
+
 def source_image_link(image_path: str) -> str:
     rendered_path = _render_image_path(image_path)
     return f'<span class="source-image-link-row"><a href="{rendered_path}" class="source-image-link">👁️‍🗨️</a></span>'
