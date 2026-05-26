@@ -30,6 +30,7 @@ class RenderOptions:
     include_image_understanding: ImageUnderstandingMode | None = None
     image_understanding_render_mode: ImageUnderstandingRenderMode = "long"
     table_multicell_mode: MultiCellMode | None = None
+    image_name_prefix: str | None = None
 
 
 render_rag = RenderOptions(
@@ -38,7 +39,8 @@ render_rag = RenderOptions(
     render_latex_as_unicode_text= True,
     include_image_understanding= 'rag',
     image_understanding_render_mode= 'long',
-    table_multicell_mode= 'repeat'
+    table_multicell_mode= 'repeat',
+    image_name_prefix= None,
 )
 
 
@@ -417,7 +419,10 @@ def _render_image_understanding_rag(
     )
     if description is None:
         return ""
+    # XXX should use <image>...</image>
     parts = [f"画像: kind={understanding.kind}"]
+    if options.image_name_prefix:
+        parts.append(f"image_name='{options.image_name_prefix}/{image_path}'")
     if understanding.keywords:
         parts.append(f"keywords={', '.join(understanding.keywords)}")
     parts.append(f"\n画像説明: {description}")
