@@ -181,6 +181,32 @@ class Result(Model):
     extracted_by: str
 
 
+def extract_image_paths(middle: Middle) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+
+    def _collect_block(block: Block) -> None:
+        for line in block.lines:
+            for span in line.spans:
+                image_path = span.image_path
+                if image_path is None or image_path in seen:
+                    continue
+                seen.add(image_path)
+                out.append(image_path)
+        for child in block.blocks:
+            _collect_block(child)
+
+    for page in middle.pdf_info:
+        for block in page.para_blocks:
+            _collect_block(block)
+        for block in page.discarded_blocks:
+            _collect_block(block)
+        for block in page.preproc_blocks:
+            _collect_block(block)
+
+    return out
+
+
 def normalize_text(s: str) -> str:
     out = unicodedata.normalize("NFKC", s)
     out = out.replace("\u3000", " ")

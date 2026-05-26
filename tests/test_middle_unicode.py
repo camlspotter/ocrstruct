@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from ocrstruct.middle import Block, Line, Middle, PageInfo, Result, Span
+from ocrstruct.middle import (
+    Block,
+    Line,
+    Middle,
+    PageInfo,
+    Result,
+    Span,
+    extract_image_paths,
+)
 
 
 def test_middle_validation_replaces_broken_surrogates_in_content() -> None:
@@ -86,3 +94,61 @@ def test_result_save_json_handles_repaired_surrogates(tmp_path) -> None:
     saved = out_path.read_text(encoding="utf-8")
     assert "\ud840" not in saved
     assert "\ufffdabc" in saved
+
+
+def test_extract_image_paths_deduplicates_and_preserves_order() -> None:
+    middle = Middle(
+        pdf_info=[
+            PageInfo(
+                page_idx=0,
+                page_size=(100, 100),
+                para_blocks=[
+                    Block(
+                        type="image",
+                        lines=[
+                            Line(
+                                spans=[
+                                    Span(type="image", image_path="a.png"),
+                                    Span(type="image", image_path="b.png"),
+                                ]
+                            )
+                        ],
+                        blocks=[
+                            Block(
+                                type="image_body",
+                                lines=[
+                                    Line(
+                                        spans=[
+                                            Span(type="image", image_path="a.png"),
+                                            Span(type="image", image_path="c.png"),
+                                        ]
+                                    )
+                                ],
+                            )
+                        ],
+                    )
+                ],
+                discarded_blocks=[
+                    Block(
+                        type="image",
+                        lines=[Line(spans=[Span(type="image", image_path="d.png")])],
+                    )
+                ],
+                preproc_blocks=[
+                    Block(
+                        type="image",
+                        lines=[
+                            Line(
+                                spans=[
+                                    Span(type="image", image_path="c.png"),
+                                    Span(type="image", image_path="e.png"),
+                                ]
+                            )
+                        ],
+                    )
+                ],
+            )
+        ]
+    )
+
+    assert extract_image_paths(middle) == ["a.png", "b.png", "c.png", "d.png", "e.png"]
