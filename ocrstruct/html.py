@@ -5,11 +5,9 @@ import re
 import shutil
 import subprocess
 import tempfile
-from typing import Any
 
 from ocrstruct.middle import Middle, Result
 from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown, result_to_markdown
-from ocrstruct.table import decode_html_table_eq_tokens
 
 
 _EQ_TAG_RE = re.compile(r"<eq>(.*?)</eq>", re.IGNORECASE | re.DOTALL)
@@ -23,15 +21,15 @@ def default_html_header_path() -> Path | None:
 
 
 def _postprocess_html_mathjax_eq(html: str) -> str:
-    if "<eq>" not in html.lower() and "CODEXEQ[" not in html:
+    '''<eq>..</eq> -> <span class="math inilne">..</span>'''
+    if "<eq>" not in html.lower():
         return html
 
     def repl(match: re.Match[str]) -> str:
         expr = match.group(1).strip()
         return f'<span class="math inline">\\({expr}\\)</span>'
 
-    updated = _EQ_TAG_RE.sub(repl, html)
-    return decode_html_table_eq_tokens(updated)
+    return _EQ_TAG_RE.sub(repl, html)
 
 
 def markdown_to_html(
