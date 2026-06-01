@@ -27,7 +27,7 @@ from ocrstruct.image_understanding import (
     understanding_record_key,
 )
 from ocrstruct.middle import Result, Middle, merge_discarded_blocks
-from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown, result_to_markdown
+from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown, result_to_markdown, render_rag, render_html
 from ocrstruct.pdf import convert_pdf_to_middle
 
 
@@ -223,11 +223,7 @@ def convert_one_pdf(
 def render_result(outdir : Path, result : Result):
     markdown_text = result_to_markdown(
         result,
-        options= RenderOptions(
-            include_image_understanding='rag',
-            image_understanding_render_mode='long',
-            table_multicell_mode='repeat',
-        )
+        options= render_rag,
     )
     text_md = outdir / "text.md"
     text_md.write_text(markdown_text, encoding="utf-8")
@@ -235,11 +231,7 @@ def render_result(outdir : Path, result : Result):
 
     html_text = result_to_html(
         result, 
-        options= RenderOptions(
-            include_image_understanding='html',
-            image_understanding_render_mode='long',
-            table_multicell_mode='keep_html',
-        )
+        options= render_html,
     )
     if html_text is None:
         logger.info("pandoc not found or failed; skip HTML conversion")
