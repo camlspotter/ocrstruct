@@ -259,39 +259,28 @@ def _equation_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
 
 def _media_block_to_markdown(block: Block, *, options: RenderOptions) -> str:
     parts: list[str] = []
+    # XXX We must warn if there are more than 1 images
     image_path = _find_first_image_path(block)
     understanding = _find_first_image_understanding(block)
     understanding_mode = options.include_image_understanding
-    if (
-        understanding_mode == "html"
-        and
-        options.include_images
-        and image_path is not None
-        and understanding is not None
-    ):
-        parts.append(
-            _render_media_with_understanding(
-                image_path=image_path,
-                understanding=understanding,
+
+    match understanding_mode:
+        case 'html':
+            if options.include_images and image_path:
+                parts.append(f"![]({_render_image_path(image_path)})")
+            if understanding_md := _render_image_understanding_html(
+                understanding,
                 options=options,
-            )
-        )
-    else:
-        if options.include_images and image_path:
-            parts.append(f"![]({_render_image_path(image_path)})")
-        match understanding_mode:
-            case "html":
-                understanding_md = _render_image_understanding_html(understanding, options=options)
-                if understanding_md:
-                    parts.append(understanding_md)
-            case "rag":
-                understanding_md = _render_image_understanding_rag(
-                    understanding,
-                    image_path=image_path,
-                    options=options,
-                )
-                if understanding_md:
-                    parts.append(understanding_md)
+            ):
+                parts.append(understanding_md)
+
+        case 'rag':
+            if understanding_md := _render_image_understanding_rag(
+                understanding,
+                image_path=image_path,
+                options=options,
+            ):
+                parts.append(understanding_md)
 
     parts.extend(
         block_to_markdown(child, options=options)
@@ -384,6 +373,30 @@ def _find_first_image_understanding(block: Block) -> ImageUnderstandingSummary |
     return None
 
 
+def _render_image_understanding_rag(
+    understanding: ImageUnderstandingSummary | None,
+    *,
+    image_path: str | None,
+    options: RenderOptions,
+) -> str:
+    if understanding is None:
+        return ""
+    description = _select_image_understanding_description(
+        understanding,
+        options=options,
+    )
+    if description is None:
+        return ""
+    parts = [f"kind={understanding.kind}"]
+    if options.image_name_prefix:
+        parts.append(f"image_name='{options.image_name_prefix}/{image_path}'")
+    if understanding.keywords:
+        parts.append(f'keywords="{', '.join(understanding.keywords)}"')
+    parts.append(f"\ndescription: {description}")
+    summary = "\n".join(parts)
+    return f"<image_summary>\n{summary}\n</image_summary>"
+
+
 def _render_image_understanding_html(
     understanding: ImageUnderstandingSummary | None,
     *,
@@ -403,30 +416,6 @@ def _render_image_understanding_html(
         f"<strong>{understanding.kind} 画像:</strong> {escape(description)}"
         "</div>"
     )
-
-
-def _render_image_understanding_rag(
-    understanding: ImageUnderstandingSummary | None,
-    *,
-    image_path: str | None,
-    options: RenderOptions,
-) -> str:
-    if understanding is None:
-        return ""
-    description = _select_image_understanding_description(
-        understanding,
-        options=options,
-    )
-    if description is None:
-        return ""
-    # XXX should use <image>...</image>
-    parts = [f"画像: kind={understanding.kind}"]
-    if options.image_name_prefix:
-        parts.append(f"image_name='{options.image_name_prefix}/{image_path}'")
-    if understanding.keywords:
-        parts.append(f"keywords={', '.join(understanding.keywords)}")
-    parts.append(f"\n画像説明: {description}")
-    return " ".join(parts)
 
 
 def _render_media_with_understanding(
