@@ -156,6 +156,7 @@ class Block(Model):
     bbox_fs: BBox | None = None
     page_num: int | None = None
     page_size: PageSize | None = None
+    id: int | None = None # assigned by ocrstruct
 
 class PageInfo(Model):
     page_idx: int
