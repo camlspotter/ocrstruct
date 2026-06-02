@@ -391,7 +391,7 @@ def _render_image_understanding_rag(
         parts.append(f"image_name='{options.image_name_prefix}/{image_path}'")
     if understanding.keywords:
         parts.append(f'keywords="{', '.join(understanding.keywords)}"')
-    parts.append(f"\ndescription: {description}")
+    parts.append(f"description: {description}")
     summary = "\n".join(parts)
     return f"<image_summary>\n{summary}\n</image_summary>"
 
