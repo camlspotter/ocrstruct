@@ -52,7 +52,7 @@ from ocrstruct.middle import (
     merge_discarded_blocks,
 )
 from ocrstruct.middle_to_markdown import middle_to_markdown, result_to_markdown
-from ocrstruct.pdf import LinkRegion, convert_pdf_to_middle
+from ocrstruct.pdf import convert_pdf_to_middle
 
 
 __all__ = [
@@ -61,7 +61,6 @@ __all__ = [
     "BlockType",
     "Content",
     "Line",
-    "LinkRegion",
     "Middle",
     "Model",
     "ModelPricing",

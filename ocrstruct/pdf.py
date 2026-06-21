@@ -1,43 +1,24 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Literal
-from typing import NamedTuple
 from typing import Any
-from pydantic import BaseModel
 
 from mineru.backend.hybrid.hybrid_analyze import doc_analyze as hybrid_doc_analyze
 from mineru.backend.pipeline.pipeline_analyze import (
     doc_analyze_streaming as pipeline_doc_analyze_streaming,
 )
-from mineru.backend.pipeline.pipeline_middle_json_mkcontent import (
-    union_make as pipeline_union_make,
-)
 from mineru.backend.vlm.vlm_analyze import doc_analyze as vlm_doc_analyze
-from mineru.backend.vlm.vlm_middle_json_mkcontent import union_make as vlm_union_make
 from mineru.cli.common import convert_pdf_bytes_to_bytes
 from mineru.data.data_reader_writer import FileBasedDataWriter
 from mineru.utils.engine_utils import get_vlm_engine
-from mineru.utils.enum_class import MakeMode
-from pypdf import PdfReader
 
-from ocrstruct.middle import BBox, Middle, Result
-from ocrstruct.utils import BaseModelWithSave, load_json, save_json
+from ocrstruct.middle import Middle, Result
 
 
 logger = logging.getLogger(__name__)
-
-class LinkRegion(BaseModelWithSave):
-    page_idx: int
-    bbox: BBox
-    target_kind: Literal["external", "internal", "unknown"]
-    uri: str | None = None
-    dest_page_idx: int | None = None
-    dest_raw: str | None = None
 
 
 class _NoopSealOcrModel:
@@ -71,88 +52,6 @@ def _maybe_disable_pipeline_seal_ocr(disabled: bool):
         AtomModelSingleton.get_atom_model = original_get_atom_model
 
 
-def _pdf_obj_to_str(value: Any, *, max_depth: int = 4) -> str:
-    if max_depth <= 0:
-        return "..."
-    if value is None:
-        return "null"
-    if isinstance(value, (str, int, float, bool)):
-        return json.dumps(value, ensure_ascii=False)
-    if isinstance(value, (list, tuple)):
-        items = [_pdf_obj_to_str(v, max_depth=max_depth - 1) for v in value[:8]]
-        suffix = ", ..." if len(value) > 8 else ""
-        return "[" + ", ".join(items) + suffix + "]"
-    if isinstance(value, dict):
-        keys = list(value.keys())[:8]
-        pairs = [
-            f"{_pdf_obj_to_str(str(k), max_depth=max_depth - 1)}: "
-            f"{_pdf_obj_to_str(value[k], max_depth=max_depth - 1)}"
-            for k in keys
-        ]
-        suffix = ", ..." if len(value) > 8 else ""
-        return "{" + ", ".join(pairs) + suffix + "}"
-    return json.dumps(str(value), ensure_ascii=False)
-
-
-def _maybe_bbox_from_rect(rect: Any) -> BBox | None:
-    try:
-        if rect is None or len(rect) < 4:
-            return None
-        x0 = float(rect[0])
-        y0 = float(rect[1])
-        x1 = float(rect[2])
-        y1 = float(rect[3])
-        return (
-            min(x0, x1),
-            min(y0, y1),
-            max(x0, x1),
-            max(y0, y1),
-        )
-    except Exception:
-        return None
-
-
-def _resolve_dest_page_idx(
-    *,
-    reader: PdfReader,
-    dest_obj: Any,
-    page_ref_to_idx: dict[tuple[int, int], int],
-) -> int | None:
-    if dest_obj is None:
-        return None
-
-    # pypdf can resolve Destination-like objects directly in some cases.
-    try:
-        page_idx = reader.get_destination_page_number(dest_obj)
-        if isinstance(page_idx, int) and page_idx >= 0:
-            return page_idx
-    except Exception:
-        pass
-
-    # Named destination string
-    try:
-        if isinstance(dest_obj, str) and dest_obj in reader.named_destinations:
-            named = reader.named_destinations[dest_obj]
-            page_idx = reader.get_destination_page_number(named)
-            if isinstance(page_idx, int) and page_idx >= 0:
-                return page_idx
-    except Exception:
-        pass
-
-    # Explicit destination array: [page_ref, /XYZ, ...]
-    try:
-        if isinstance(dest_obj, (list, tuple)) and dest_obj:
-            page_ref = dest_obj[0]
-            idnum = getattr(page_ref, "idnum", None)
-            generation = getattr(page_ref, "generation", None)
-            if isinstance(idnum, int) and isinstance(generation, int):
-                return page_ref_to_idx.get((idnum, generation))
-    except Exception:
-        pass
-
-    return None
-
-
 def convert_pdf_to_middle(
     pdf_path: str,
     *,
@@ -171,7 +70,7 @@ def convert_pdf_to_middle(
         if res := Result.load_json(middle_path):
             return res
 
-    return _convert_pdf_to_middle_impl(
+    res = _convert_pdf_to_middle_impl(
         pdf_path,
         outdir=outdir,
         backend=backend,
@@ -181,6 +80,36 @@ def convert_pdf_to_middle(
         seal_enable=seal_enable,
         formula_enable=formula_enable,
     )
+
+    res.save_json(middle_path)
+    logger.info(f"MinerU middle_json saved: {middle_path}")
+    return res
+
+
+def convert_pdf_to_middle_json(
+    pdf_path: str,
+    *,
+    outdir: str,
+    backend: str | None = None,
+    method: str | None = None,
+    lang: str | None = None,
+    server_url: str | None = None,
+    seal_enable: bool = True,
+    formula_enable: bool = True,
+    lazy: bool = False,
+) -> Result:
+    return convert_pdf_to_middle(
+        pdf_path,
+        outdir=outdir,
+        backend=backend,
+        method=method,
+        lang=lang,
+        server_url=server_url,
+        seal_enable=seal_enable,
+        formula_enable=formula_enable,
+        lazy=lazy,
+    )
+
 
 def _convert_pdf_to_middle_impl(
     pdf_path: str,
@@ -193,7 +122,6 @@ def _convert_pdf_to_middle_impl(
     seal_enable: bool = True,
     formula_enable: bool = True,
 ) -> Result:
-    middle_path = Path(outdir) / "middle.json"
     backend = backend or os.getenv("MINERU_BACKEND", "pipeline")
     method = method or os.getenv("MINERU_METHOD", "auto")
     lang = lang or os.getenv("MINERU_LANG", "japan")
@@ -266,11 +194,7 @@ def _convert_pdf_to_middle_impl(
     else:
         raise ValueError("MINERU_BACKEND must be 'pipeline', 'vlm-*', or 'hybrid-*")
 
-    res = Result(
+    return Result(
         middle_json=Middle.model_validate(middle_json),
         extracted_by=extracted_by,
     )
-
-    res.save_json(middle_path)
-    logger.info(f"MinerU middle_json saved: {middle_path}")
-    return res
