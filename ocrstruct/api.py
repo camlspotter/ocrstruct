@@ -224,12 +224,14 @@ def convert_one_pdf(
         )
         middle = merge_understanding_into_middle(middle, understandings)
 
-    return Result(
+    result = Result(
         middle= middle,
         source_path= str(pdf_path),
         extracted_by= extracted_by,
         parameters= parameters,
     )
+    result.save_json(middle_json_path)
+    return result
 
 
 def render_middle(outdir : Path, middle: Middle):

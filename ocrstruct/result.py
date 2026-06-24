@@ -42,7 +42,7 @@ dummy_parameters = Parameters(
 
 # middle.json has this type
 class Result(BaseModelWithSave):
-    middle: Middle
     source_path: str
     extracted_by: str
     parameters: Parameters
+    middle: Middle
