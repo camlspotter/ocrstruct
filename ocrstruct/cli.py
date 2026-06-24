@@ -38,11 +38,6 @@ def main() -> int:
         help="skip MinerU formula recognition when supported",
     )
     parser.add_argument(
-        "--lazy",
-        action="store_true",
-        help="reuse existing middle.json in the output directory when available",
-    )
-    parser.add_argument(
         "--with-image-understanding",
         action="store_true",
         help="also generate image_screening.jsonl and image_understanding.jsonl",
@@ -105,7 +100,6 @@ def main() -> int:
             server_url=args.server_url,
             seal_enable=not args.disable_seal,
             formula_enable=not args.disable_formula,
-            lazy=args.lazy,
             with_image_understanding=args.with_image_understanding,
             image_screening_model=args.image_screening_model,
             image_screening_base_url=args.image_screening_base_url,

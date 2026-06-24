@@ -27,7 +27,7 @@ from ocrstruct.image_understanding import (
     image_refs_from_middle,
 )
 from ocrstruct.middle import Block, Line, Middle, PageInfo, Span
-from ocrstruct.result import Result
+from ocrstruct.result import Result, dummy_parameters
 
 
 def _screening_record() -> ScreeningRecord:
@@ -270,6 +270,7 @@ def test_load_image_refs_from_middle_json_reads_result_wrapper(tmp_path: Path) -
             ]
         ),
         extracted_by="mineru/pipeline",
+        parameters= dummy_parameters,
     )
     result.save_json(middle_path)
     refs = image_refs_from_middle(result.middle, pdf_path= 'dummy.pdf', middle_json_path= str(middle_path))
