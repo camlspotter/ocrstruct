@@ -1,4 +1,4 @@
-from ocrstruct.html import markdown_to_html, middle_to_html, result_to_html
+from ocrstruct.middle_to_html import markdown_to_html, middle_to_html
 from ocrstruct.image_understanding import (
     DEFAULT_MODEL_PRICING,
     FinalScreeningResult,
@@ -25,7 +25,6 @@ from ocrstruct.image_understanding import (
     iter_understanding_records_from_screening,
     load_completed_screening_keys,
     load_completed_understanding_keys,
-    load_image_refs_from_middle_json,
     load_images_file_json,
     load_pricing_overrides,
     load_screening_records_jsonl,
@@ -46,13 +45,13 @@ from ocrstruct.middle import (
     Model,
     PageInfo,
     PageSize,
-    Result,
     Span,
     SpanType,
     merge_discarded_blocks,
 )
-from ocrstruct.middle_to_markdown import middle_to_markdown, result_to_markdown
-from ocrstruct.pdf import LinkRegion, convert_pdf_to_middle
+from ocrstruct.middle_to_markdown import middle_to_markdown
+from ocrstruct.pdf_mineru import convert_pdf_to_middle
+from ocrstruct.result import Result
 
 
 __all__ = [
@@ -61,7 +60,6 @@ __all__ = [
     "BlockType",
     "Content",
     "Line",
-    "LinkRegion",
     "Middle",
     "Model",
     "ModelPricing",
@@ -92,7 +90,6 @@ __all__ = [
     "iter_understanding_records_from_screening",
     "load_completed_screening_keys",
     "load_completed_understanding_keys",
-    "load_image_refs_from_middle_json",
     "load_images_file_json",
     "load_pricing_overrides",
     "load_screening_records_jsonl",
@@ -105,8 +102,6 @@ __all__ = [
     "middle_to_markdown",
     "pricing_for_model",
     "RagValue",
-    "result_to_html",
-    "result_to_markdown",
     "RunStatus",
     "ScreeningRecord",
     "ScreeningResult",

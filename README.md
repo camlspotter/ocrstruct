@@ -117,7 +117,7 @@ Recommended external API (from `ocrstruct.api`):
 - `image_understanding_run_from_screening(ref, screening, *, model, base_url=None, api_key=None, pricing, thinking=False)`
 - `pricing_for_model(model, pricing_overrides=None)`
 - `load_pricing_overrides(path)`
-- `build_images_file(records, *, middle_json_path, generated_at=None)`
+- `build_images_file(records, *, middle_json_path)`
 - `load_images_file_json(path, *, middle_json_sha256=None, middle_json_path=None)`
 - `merge_understanding_into_middle(middle, records)`
 - `merge_images_into_middle(middle, images_file)`

@@ -14,7 +14,7 @@ from typing import Any, Iterable, Literal, TypeAlias, cast
 from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ocrstruct.middle import Block, ImageUnderstandingSummary, Middle, Result, Span, normalize_text
+from ocrstruct.middle import Block, ImageUnderstandingSummary, Middle, Span, normalize_text
 from ocrstruct.utils import BaseModelWithSave
 
 
@@ -160,7 +160,6 @@ class ImageResult(Model):
 class ImagesFile(Model):
     version: Literal["1"] = "1"
     middle_json_sha256: str
-    generated_at: str
     items: list[ImageResult] = Field(default_factory=list)
 
 
@@ -969,21 +968,6 @@ ScreeningRecordKey: TypeAlias = tuple[
 ]
 
 
-def load_image_refs_from_middle_json(
-    middle_json_path: str | Path,
-    *,
-    pdf_path: str | Path | None = None,
-) -> list[ImageRef]:
-    middle_path = Path(middle_json_path)
-    result = Result.load_json(middle_path)
-    resolved_pdf_path = str(pdf_path) if pdf_path is not None else str(middle_path.with_suffix(".pdf"))
-    return image_refs_from_middle(
-        result.middle_json,
-        pdf_path=resolved_pdf_path,
-        middle_json_path=str(middle_path),
-    )
-
-
 def load_pricing_overrides(path: str | Path | None) -> dict[str, ModelPricing]:
     if path is None:
         return {}
@@ -1090,7 +1074,6 @@ def build_images_file(
     records: Iterable[UnderstandingRecord],
     *,
     middle_json_path: str | Path,
-    generated_at: str | None = None,
 ) -> ImagesFile:
     items = [
         image_result_from_understanding_record(record)
@@ -1105,7 +1088,6 @@ def build_images_file(
     )
     return ImagesFile(
         middle_json_sha256=compute_middle_json_sha256(middle_json_path),
-        generated_at=generated_at or datetime.now(UTC).isoformat(),
         items=items,
     )
 

@@ -19,14 +19,15 @@ from ocrstruct.image_understanding import (
     UnderstandingRunView,
     iter_understanding_records_from_screening,
     load_completed_understanding_keys,
-    load_image_refs_from_middle_json,
     load_pricing_overrides,
     load_screening_records_jsonl,
     load_understanding_records_jsonl,
     merge_images_into_middle,
     merge_understanding_into_middle,
+    image_refs_from_middle,
 )
-from ocrstruct.middle import Block, Line, Middle, PageInfo, Result, Span
+from ocrstruct.middle import Block, Line, Middle, PageInfo, Span
+from ocrstruct.result import Result
 
 
 def _screening_record() -> ScreeningRecord:
@@ -247,7 +248,8 @@ def test_load_pricing_overrides_reads_model_map(tmp_path: Path) -> None:
 def test_load_image_refs_from_middle_json_reads_result_wrapper(tmp_path: Path) -> None:
     middle_path = tmp_path / "middle.json"
     result = Result(
-        middle_json=Middle(
+        source_path="dummy",
+        middle=Middle(
             pdf_info=[
                 PageInfo(
                     page_idx=0,
@@ -270,8 +272,7 @@ def test_load_image_refs_from_middle_json_reads_result_wrapper(tmp_path: Path) -
         extracted_by="mineru/pipeline",
     )
     result.save_json(middle_path)
-
-    refs = load_image_refs_from_middle_json(middle_path, pdf_path="/tmp/sample.pdf")
+    refs = image_refs_from_middle(result.middle, pdf_path= 'dummy.pdf', middle_json_path= str(middle_path))
 
     assert len(refs) == 1
     assert refs[0].middle_json_path == str(middle_path)
@@ -390,11 +391,9 @@ def test_build_images_file_embeds_middle_hash_and_context(tmp_path: Path) -> Non
     images_file = build_images_file(
         [_understanding_record()],
         middle_json_path=middle_path,
-        generated_at="2026-05-09T00:00:00+00:00",
     )
 
     assert images_file.middle_json_sha256 == compute_middle_json_sha256(middle_path)
-    assert images_file.generated_at == "2026-05-09T00:00:00+00:00"
     assert len(images_file.items) == 1
     assert images_file.items[0].ref.caption == "Figure 1"
     assert images_file.items[0].ref.section_title == "Section A"
@@ -408,7 +407,6 @@ def test_load_images_file_json_verifies_middle_hash(tmp_path: Path) -> None:
     images_file = build_images_file(
         [_understanding_record()],
         middle_json_path=middle_path,
-        generated_at="2026-05-09T00:00:00+00:00",
     )
     images_path = tmp_path / "images.json"
     images_file.save_json(images_path)
@@ -440,7 +438,6 @@ def test_merge_images_into_middle_attaches_summary_to_image_span(tmp_path: Path)
     images_file = build_images_file(
         [understanding_record],
         middle_json_path=middle_path,
-        generated_at="2026-05-09T00:00:00+00:00",
     )
     middle = Middle(
         pdf_info=[

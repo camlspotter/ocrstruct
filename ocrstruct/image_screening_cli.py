@@ -6,12 +6,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from ocrstruct.result import Result
 from ocrstruct.image_understanding import (
     iter_screening_records_from_refs,
     load_completed_screening_keys,
-    load_image_refs_from_middle_json,
     load_pricing_overrides,
     pricing_for_model,
+    image_refs_from_middle,
 )
 
 def main() -> int:
@@ -24,7 +25,7 @@ def main() -> int:
     parser.add_argument("--middle-json", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--model", action="append", required=True)
-    parser.add_argument("--pdf-path")
+    parser.add_argument("--pdf-path", required=True)
     parser.add_argument("--base-url")
     parser.add_argument("--api-key")
     parser.add_argument("--pricing-json")
@@ -58,10 +59,8 @@ def main() -> int:
 
     logging.basicConfig(level=getattr(logging, args.log_level))
 
-    refs = load_image_refs_from_middle_json(
-        args.middle_json,
-        pdf_path=args.pdf_path,
-    )
+    result = Result.load_json(args.middle_json)
+    refs = image_refs_from_middle(result.middle, pdf_path= args.pdf_path, middle_json_path= args.middle_json)
     pricing_overrides = load_pricing_overrides(args.pricing_json)
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -6,8 +6,8 @@ import shutil
 import subprocess
 import tempfile
 
-from ocrstruct.middle import Middle, Result
-from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown, result_to_markdown
+from ocrstruct.middle import Middle
+from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown
 
 
 _EQ_TAG_RE = re.compile(r"<eq>(.*?)</eq>", re.IGNORECASE | re.DOTALL)
@@ -93,17 +93,5 @@ def middle_to_html(
 ) -> str | None:
     return markdown_to_html(
         middle_to_markdown(middle, options=options),
-        header_path=header_path,
-    )
-
-
-def result_to_html(
-    result: Result,
-    *,
-    header_path: str | Path | None = None,
-    options: RenderOptions | None = None,
-) -> str | None:
-    return markdown_to_html(
-        result_to_markdown(result, options=options),
         header_path=header_path,
     )

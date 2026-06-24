@@ -176,12 +176,6 @@ class Middle(Model):
     footer_text_first_page: dict[str, int] | None = Field(default=None, alias="_footer_text_first_page")
 
 
-# middle.json has this type
-class Result(Model):
-    middle_json: Middle
-    extracted_by: str
-
-
 def extract_image_paths(middle: Middle) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []

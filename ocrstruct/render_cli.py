@@ -4,13 +4,13 @@ import argparse
 import logging
 from pathlib import Path
 
-from ocrstruct.html import middle_to_html
+from ocrstruct.result import Result
+from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown
+from ocrstruct.middle_to_html import middle_to_html
 from ocrstruct.image_understanding import (
     load_understanding_records_jsonl,
     merge_understanding_into_middle,
 )
-from ocrstruct.middle import Result
-from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown
 
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ def main() -> int:
     result = Result.load_json(middle_json_path)
     understanding_records = load_understanding_records_jsonl(understanding_jsonl_path)
     merged_middle = merge_understanding_into_middle(
-        result.middle_json,
+        result.middle,
         understanding_records,
     )
     options = _build_render_options(args)

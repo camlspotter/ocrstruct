@@ -5,10 +5,10 @@ from ocrstruct.middle import (
     Line,
     Middle,
     PageInfo,
-    Result,
     Span,
     extract_image_paths,
 )
+from ocrstruct.result import Result
 
 
 def test_middle_validation_replaces_broken_surrogates_in_content() -> None:
@@ -45,7 +45,7 @@ def test_middle_validation_replaces_broken_surrogates_in_content() -> None:
 def test_result_validation_replaces_broken_surrogates_in_metadata_keys() -> None:
     result = Result.model_validate(
         {
-            "middle_json": {
+            "middle": {
                 "pdf_info": [
                     {
                         "page_idx": 0,
@@ -56,16 +56,17 @@ def test_result_validation_replaces_broken_surrogates_in_metadata_keys() -> None
                     "\ud840broken": 0,
                 },
             },
+            "source_path": "dummy",
             "extracted_by": "mineru/pipeline",
         }
     )
 
-    assert result.middle_json.header_text_first_page == {"\ufffdbroken": 0}
+    assert result.middle.header_text_first_page == {"\ufffdbroken": 0}
 
 
 def test_result_save_json_handles_repaired_surrogates(tmp_path) -> None:
     result = Result(
-        middle_json=Middle(
+        middle=Middle(
             pdf_info=[
                 PageInfo(
                     page_idx=0,
@@ -86,6 +87,7 @@ def test_result_save_json_handles_repaired_surrogates(tmp_path) -> None:
             ]
         ),
         extracted_by="mineru/pipeline",
+        source_path='dummy',
     )
 
     out_path = tmp_path / "middle.json"

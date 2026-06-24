@@ -6,7 +6,7 @@ from typing import Literal, cast
 
 from ocrstruct.math import render_math_text
 from ocrstruct.middle import (
-    Block, Content, ImageUnderstandingSummary, Line, Middle, PageInfo, Result, Span,
+    Block, Content, ImageUnderstandingSummary, Line, Middle, PageInfo, Span,
     block_title_level
 )
 from ocrstruct.table import MultiCellMode, html_tables_to_markdown
@@ -63,10 +63,6 @@ def _render_source_image_link(image_path: str, *, options: RenderOptions) -> str
     if not options.include_source_image_links:
         return ""
     return source_image_link(image_path)
-
-
-def result_to_markdown(result: Result, *, options: RenderOptions | None = None) -> str:
-    return middle_to_markdown(result.middle_json, options=options)
 
 
 def middle_to_markdown(doc: Middle, *, options: RenderOptions | None = None) -> str:
