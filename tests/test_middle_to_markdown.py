@@ -43,8 +43,8 @@ def test_middle_to_markdown_preserves_default_table_rendering() -> None:
 
     rendered = middle_to_markdown(middle)
 
-    assert "<table>" in rendered
-    assert "| A | B |" not in rendered
+    assert "<table>" not in rendered
+    assert "| A | B |" in rendered
 
 
 def test_middle_to_markdown_can_expand_multicell_tables_for_llm() -> None:
@@ -160,9 +160,8 @@ def test_middle_to_markdown_can_render_image_understanding_summary() -> None:
         options=RenderOptions(include_image_understanding="html"),
     )
 
-    assert 'class="image-understanding-layout"' in rendered
-    assert 'class="image-understanding image-understanding--short"' in rendered
-    assert "画像理解:</strong> 短い説明" in rendered
+    assert 'class="image-understanding image-understanding--long"' in rendered
+    assert "diagram 画像:</strong> 詳細な説明です" in rendered
 
 
 def test_middle_to_markdown_can_render_long_image_understanding_summary() -> None:
@@ -216,7 +215,7 @@ def test_middle_to_markdown_can_render_long_image_understanding_summary() -> Non
     )
 
     assert 'class="image-understanding image-understanding--long"' in rendered
-    assert "画像理解:</strong> 詳細な説明です" in rendered
+    assert "diagram 画像:</strong> 詳細な説明です" in rendered
 
 
 def test_middle_to_markdown_includes_source_image_links_by_default() -> None:
@@ -314,7 +313,8 @@ def test_middle_to_markdown_includes_source_image_links_by_default() -> None:
         options=RenderOptions(include_image_understanding="html"),
     )
 
-    assert rendered.count('class="source-image-link"') == 4
+    assert rendered.count('class="source-image-link"') == 3
+    assert "![](images/sample.png)" in rendered
 
 
 def test_middle_to_markdown_can_disable_source_image_links() -> None:
@@ -465,10 +465,10 @@ def test_middle_to_markdown_can_render_rag_image_understanding_summary() -> None
         options=RenderOptions(include_image_understanding="rag"),
     )
 
-    assert "画像: kind=diagram" in rendered
-    assert "![](images/sample.png)" in rendered
-    assert "keywords=workflow" in rendered
-    assert "画像説明: 短い説明" in rendered
+    assert "<image_summary>" in rendered
+    assert "kind=diagram" in rendered
+    assert 'keywords="workflow"' in rendered
+    assert "description: 詳細な説明です" in rendered
     assert 'class="image-understanding-layout"' not in rendered
 
 

@@ -1,5 +1,5 @@
 from ocrstruct.middle import Middle
-from utils import BaseModelWithSave
+from ocrstruct.utils import BaseModelWithSave
 
 
 # middle.json has this type

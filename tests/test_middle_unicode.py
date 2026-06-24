@@ -45,7 +45,7 @@ def test_middle_validation_replaces_broken_surrogates_in_content() -> None:
 def test_result_validation_replaces_broken_surrogates_in_metadata_keys() -> None:
     result = Result.model_validate(
         {
-            "middle_json": {
+            "middle": {
                 "pdf_info": [
                     {
                         "page_idx": 0,
@@ -56,6 +56,7 @@ def test_result_validation_replaces_broken_surrogates_in_metadata_keys() -> None
                     "\ud840broken": 0,
                 },
             },
+            "source_path": "dummy",
             "extracted_by": "mineru/pipeline",
         }
     )
