@@ -42,7 +42,6 @@ def main() -> int:
         action="store_true",
         help="also generate image_screening.jsonl and image_understanding.jsonl",
     )
-
     parser.add_argument(
         "--image-screening-model",
         action="append",
@@ -56,7 +55,6 @@ def main() -> int:
         "--image-screening-api-key",
         help="API key for image screening generation",
     )
-
     parser.add_argument(
         "--image-understanding-model",
         action="append",
@@ -69,11 +67,6 @@ def main() -> int:
     parser.add_argument(
         "--image-understanding-api-key",
         help="API key for image understanding generation",
-    )
-
-    parser.add_argument(
-        "--model-pricing-json",
-        help="JSON file with model pricing overrides for screening and understanding generation",
     )
     parser.add_argument(
         "--log-level",
@@ -107,7 +100,6 @@ def main() -> int:
             image_understanding_model=args.image_understanding_model,
             image_understanding_base_url=args.image_understanding_base_url,
             image_understanding_api_key=args.image_understanding_api_key,
-            model_pricing_json=args.model_pricing_json,
         )
         render_middle(outdir, result.middle)
     return 0

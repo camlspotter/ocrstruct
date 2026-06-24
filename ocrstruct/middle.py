@@ -68,16 +68,6 @@ SpanType: TypeAlias = Literal[
 ]
 
 
-class Span(Model):
-    type: str # SpanType but may contain an unexpected
-    bbox: BBox | None = None
-    content: Content | None = None
-    score: float | None = None
-    image_path: str | None = None
-    html: str | None = None
-    image_understanding: "ImageUnderstandingSummary | None" = None
-
-
 class ImageUnderstandingSummary(Model):
     kind: str
     rag_value: str
@@ -86,11 +76,16 @@ class ImageUnderstandingSummary(Model):
     notes: str | None = None
     short_description: str | None = None
     long_description: str | None = None
-    model: str
-    thinking: bool = False
-    screening_model: str
-    screening_thinking: bool | None = None
-    status_ok: bool = True
+
+
+class Span(Model):
+    type: str # SpanType but may contain an unexpected
+    bbox: BBox | None = None
+    content: Content | None = None
+    score: float | None = None
+    image_path: str | None = None
+    html: str | None = None
+    image_understanding: ImageUnderstandingSummary | None = None
 
 
 class Line(Model):
@@ -157,6 +152,7 @@ class Block(Model):
     page_num: int | None = None
     page_size: PageSize | None = None
     id: int | None = None # assigned by ocrstruct
+
 
 class PageInfo(Model):
     page_idx: int
@@ -384,6 +380,7 @@ def merge_discarded_blocks(middle: Middle) -> Middle:
     out.header_text_first_page = header_first_page
     out.footer_text_first_page = footer_first_page
     return out
+
 
 def block_title_level(b : Block) -> int|None:
     match b.type:

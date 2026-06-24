@@ -7,10 +7,6 @@ from pathlib import Path
 from ocrstruct.result import Result
 from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown
 from ocrstruct.middle_to_html import middle_to_html
-from ocrstruct.image_understanding import (
-    load_understanding_records_jsonl,
-    merge_understanding_into_middle,
-)
 
 
 logger = logging.getLogger(__name__)
@@ -75,14 +71,9 @@ def main() -> int:
     outdir = Path(args.outdir) if args.outdir else middle_json_path.parent
 
     result = Result.load_json(middle_json_path)
-    understanding_records = load_understanding_records_jsonl(understanding_jsonl_path)
-    merged_middle = merge_understanding_into_middle(
-        result.middle,
-        understanding_records,
-    )
     options = _build_render_options(args)
-    markdown_text = middle_to_markdown(merged_middle, options=options)
-    html_text = middle_to_html(merged_middle, options=options)
+    markdown_text = middle_to_markdown(result.middle, options=options)
+    html_text = middle_to_html(result.middle, options=options)
 
     outdir.mkdir(parents=True, exist_ok=True)
     text_md, text_html = _write_outputs(outdir, markdown_text, html_text)

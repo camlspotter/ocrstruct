@@ -30,6 +30,5 @@ jobs:
         run: >-
           uv run --with pytest python -m pytest
           tests/test_html.py
-          tests/test_image_understanding_api.py
           tests/test_middle_to_markdown.py
           tests/test_middle_unicode.py

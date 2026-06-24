@@ -29,12 +29,11 @@ def _env_flag(name: str, *, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _env_models(name: str) -> list[str] | None:
+def _env_model(name: str) -> str | None:
     value = os.environ.get(name)
     if value is None:
         return None
-    models = [item.strip() for item in value.split(",") if item.strip()]
-    return models or None
+    return value
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -72,11 +71,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="skip MinerU formula recognition",
     )
     parser.add_argument(
-        "--lazy",
-        action="store_true",
-        help="reuse existing middle.json outputs when present",
-    )
-    parser.add_argument(
         "--with-image-understanding",
         action="store_true",
         default=_env_flag("OCRSTRUCT_WITH_IMAGE_UNDERSTANDING"),
@@ -84,8 +78,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument(
         "--image-screening-model",
-        action="append",
-        default=_env_models("OCRSTRUCT_IMAGE_SCREENING_MODEL"),
+        default=_env_model("OCRSTRUCT_IMAGE_SCREENING_MODEL"),
         help="screening model to use when --with-image-understanding is enabled",
     )
     parser.add_argument(
@@ -100,8 +93,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument(
         "--image-understanding-model",
-        action="append",
-        default=_env_models("OCRSTRUCT_IMAGE_UNDERSTANDING_MODEL"),
+        default=_env_model("OCRSTRUCT_IMAGE_UNDERSTANDING_MODEL"),
         help="understanding model to use when --with-image-understanding is enabled",
     )
     parser.add_argument(
@@ -113,11 +105,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--image-understanding-api-key",
         default=os.environ.get("OCRSTRUCT_IMAGE_UNDERSTANDING_API_KEY"),
         help="API key for image understanding; defaults to values from .env",
-    )
-    parser.add_argument(
-        "--model-pricing-json",
-        type=Path,
-        help="JSON file with model pricing overrides",
     )
     parser.add_argument(
         "--keep-going",
@@ -162,7 +149,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 image_understanding_model=args.image_understanding_model,
                 image_understanding_base_url=args.image_understanding_base_url,
                 image_understanding_api_key=args.image_understanding_api_key,
-                model_pricing_json=args.model_pricing_json,
             )
             render_middle(outdir, result.middle)
         except Exception:
