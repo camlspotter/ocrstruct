@@ -8,7 +8,7 @@ from ocrstruct.middle import (
     Span,
     extract_image_paths,
 )
-from ocrstruct.result import Result
+from ocrstruct.result import Result, dummy_parameters
 
 
 def test_middle_validation_replaces_broken_surrogates_in_content() -> None:
@@ -58,6 +58,7 @@ def test_result_validation_replaces_broken_surrogates_in_metadata_keys() -> None
             },
             "source_path": "dummy",
             "extracted_by": "mineru/pipeline",
+            "parameters": dummy_parameters.model_dump(mode="json"),
         }
     )
 
@@ -88,6 +89,7 @@ def test_result_save_json_handles_repaired_surrogates(tmp_path) -> None:
         ),
         extracted_by="mineru/pipeline",
         source_path='dummy',
+        parameters= dummy_parameters,
     )
 
     out_path = tmp_path / "middle.json"

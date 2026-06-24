@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 from typing import Self, TypeVar, Type
 from pydantic import BaseModel, TypeAdapter
@@ -40,3 +41,11 @@ def load_json(typ : Type[T], path : str | Path) -> T | None:
             raise e
     else:
         return None
+
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(65536):  # 64KB ずつ
+            h.update(chunk)
+    return h.hexdigest()
