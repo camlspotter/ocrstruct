@@ -138,10 +138,6 @@ def test_middle_to_markdown_can_render_image_understanding_summary() -> None:
                                                     keywords=["workflow"],
                                                     short_description="短い説明",
                                                     long_description="詳細な説明です",
-                                                    model="understanding-model",
-                                                    thinking=False,
-                                                    screening_model="screening-model",
-                                                    screening_thinking=False,
                                                 ),
                                             )
                                         ]
@@ -189,10 +185,6 @@ def test_middle_to_markdown_can_render_long_image_understanding_summary() -> Non
                                                     keywords=["workflow"],
                                                     short_description="短い説明",
                                                     long_description="詳細な説明です",
-                                                    model="understanding-model",
-                                                    thinking=False,
-                                                    screening_model="screening-model",
-                                                    screening_thinking=False,
                                                 ),
                                             )
                                         ]
@@ -291,10 +283,6 @@ def test_middle_to_markdown_includes_source_image_links_by_default() -> None:
                                                     keywords=["workflow"],
                                                     short_description="短い説明",
                                                     long_description="詳細な説明です",
-                                                    model="understanding-model",
-                                                    thinking=False,
-                                                    screening_model="screening-model",
-                                                    screening_thinking=False,
                                                 ),
                                             )
                                         ]
@@ -390,10 +378,6 @@ def test_middle_to_markdown_can_disable_source_image_links() -> None:
                                                     keywords=["workflow"],
                                                     short_description="短い説明",
                                                     long_description="詳細な説明です",
-                                                    model="understanding-model",
-                                                    thinking=False,
-                                                    screening_model="screening-model",
-                                                    screening_thinking=False,
                                                 ),
                                             )
                                         ]
@@ -443,10 +427,6 @@ def test_middle_to_markdown_can_render_rag_image_understanding_summary() -> None
                                                     keywords=["workflow"],
                                                     short_description="短い説明",
                                                     long_description="詳細な説明です",
-                                                    model="understanding-model",
-                                                    thinking=False,
-                                                    screening_model="screening-model",
-                                                    screening_thinking=False,
                                                 ),
                                             )
                                         ]
