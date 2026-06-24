@@ -147,6 +147,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     for index, pdf_path in enumerate(pdf_paths, start=1):
         outdir = pdf_path.with_suffix("")
+        logger.info("----------------------------------------------------------")
         logger.info("[%s/%s] converting %s", index, len(pdf_paths), pdf_path.name)
         try:
             result = convert_one_pdf(

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import hashlib
 import json
 import logging
 import mimetypes
@@ -15,7 +14,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ocrstruct.middle import Block, ImageUnderstandingSummary, Middle, Span, normalize_text
-from ocrstruct.utils import BaseModelWithSave
+from ocrstruct.utils import BaseModelWithSave, sha256_file
 
 
 logger = logging.getLogger(__name__)
@@ -1011,10 +1010,6 @@ def image_result_ref_key(ref: ImageResultRef) -> tuple[int, int | None, str]:
     )
 
 
-def compute_middle_json_sha256(path: str | Path) -> str:
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
-
-
 def image_result_ref_from_image_ref(ref: ImageRef) -> ImageResultRef:
     return ImageResultRef(
         page_idx=ref.page_idx,
@@ -1087,7 +1082,7 @@ def build_images_file(
         )
     )
     return ImagesFile(
-        middle_json_sha256=compute_middle_json_sha256(middle_json_path),
+        middle_json_sha256=sha256_file(middle_json_path),
         items=items,
     )
 
@@ -1101,7 +1096,7 @@ def load_images_file_json(
     images_file = ImagesFile.load_json(path)
     expected_sha256 = middle_json_sha256
     if middle_json_path is not None:
-        computed_sha256 = compute_middle_json_sha256(middle_json_path)
+        computed_sha256 = sha256_file(middle_json_path)
         if expected_sha256 is not None and expected_sha256 != computed_sha256:
             raise ValueError("middle_json_sha256 does not match the supplied middle_json_path")
         expected_sha256 = computed_sha256

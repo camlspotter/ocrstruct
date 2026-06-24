@@ -4,7 +4,6 @@ from pathlib import Path
 
 from ocrstruct.image_understanding import (
     build_images_file,
-    compute_middle_json_sha256,
     ImageRef,
     ImageUnderstanding,
     ImageUnderstandingRunResult,
@@ -28,6 +27,7 @@ from ocrstruct.image_understanding import (
 )
 from ocrstruct.middle import Block, Line, Middle, PageInfo, Span
 from ocrstruct.result import Result, dummy_parameters
+from ocrstruct.utils import sha256_file
 
 
 def _screening_record() -> ScreeningRecord:
@@ -394,7 +394,7 @@ def test_build_images_file_embeds_middle_hash_and_context(tmp_path: Path) -> Non
         middle_json_path=middle_path,
     )
 
-    assert images_file.middle_json_sha256 == compute_middle_json_sha256(middle_path)
+    assert images_file.middle_json_sha256 == sha256_file(middle_path)
     assert len(images_file.items) == 1
     assert images_file.items[0].ref.caption == "Figure 1"
     assert images_file.items[0].ref.section_title == "Section A"
