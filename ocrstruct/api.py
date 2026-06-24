@@ -3,48 +3,45 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from ocrstruct.html import markdown_to_html, middle_to_html, result_to_html
+from ocrstruct.middle_to_html import middle_to_html
 from ocrstruct.image_understanding import (
     UnderstandingRecord,
     build_images_file,
-    compute_middle_json_sha256,
     image_refs_from_middle,
-    image_result_from_understanding_record,
-    image_understanding_run_from_screening,
     iter_screening_records_from_refs,
     iter_understanding_records_from_screening,
     load_completed_screening_keys,
     load_completed_understanding_keys,
-    load_image_refs_from_middle_json,
-    load_images_file_json,
     load_pricing_overrides,
     load_screening_records_jsonl,
     load_understanding_records_jsonl,
     merge_understanding_into_middle,
-    merge_images_into_middle,
     pricing_for_model,
     screening_record_key,
     understanding_record_key,
 )
-from ocrstruct.middle import Result, Middle, merge_discarded_blocks
-from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown, result_to_markdown, render_rag, render_html
-from ocrstruct.pdf import convert_pdf_to_middle
+from ocrstruct.middle import Middle, merge_discarded_blocks
+from ocrstruct.middle_to_markdown import RenderOptions, middle_to_markdown, render_rag, render_html
+from ocrstruct.pdf_mineru import convert_pdf_to_middle
+from ocrstruct.result import Result
+from ocrstruct.utils import BaseModelWithSave
 
 
 logger = logging.getLogger(__name__)
 
 
-def _merge_image_understanding_if_present(outdir: Path, *, result: Result) -> None:
+def _merge_image_understanding_if_present(outdir: Path, middle: Middle) -> Middle:
     understanding_jsonl_path = outdir / "image_understanding.jsonl"
     if not understanding_jsonl_path.exists():
-        return
+        return middle
 
     understanding_records = load_understanding_records_jsonl(understanding_jsonl_path)
-    result.middle_json = merge_understanding_into_middle(
-        result.middle_json,
+    middle = merge_understanding_into_middle(
+        middle,
         understanding_records,
     )
     logger.info("Merged image understanding: %s", understanding_jsonl_path)
+    return middle
 
 
 def _write_images_file(
@@ -66,7 +63,7 @@ def generate_image_understanding(
     *,
     outdir: str | Path,
     pdf_path: str | Path,
-    result: Result,
+    middle: Middle,
     image_screening_models: list[str],
     image_understanding_models: list[str],
     image_screening_base_url: str | None = None,
@@ -84,7 +81,7 @@ def generate_image_understanding(
     resolved_outdir = Path(outdir)
     middle_json_path = resolved_outdir / "middle.json"
     refs = image_refs_from_middle(
-        result.middle_json,
+        middle,
         pdf_path=str(pdf_path),
         middle_json_path=str(middle_json_path),
     )
@@ -156,6 +153,18 @@ def generate_image_understanding(
     )
 
 
+# class Dependency(BaseModelWithSave):
+#     source_checksum: str
+#     backend: str | None
+#     method: str | None
+#     lang: str | None
+#     seal_enable: bool
+#     formula_enable: bool
+#     with_image_understanding: bool
+#     image_screening_models: list[str] | None = None,
+#     image_understanding_models: list[str] | None = None,
+
+
 def convert_one_pdf(
     *,
     pdf_path: str | Path,
@@ -184,7 +193,9 @@ def convert_one_pdf(
     resolved_outdir.mkdir(parents=True, exist_ok=True)
     (resolved_outdir / "images").mkdir(parents=True, exist_ok=True)
 
-    result = convert_pdf_to_middle(
+    # XXX lazy is not used
+
+    middle, extracted_by = convert_pdf_to_middle(
         str(resolved_pdf_path),
         outdir=str(resolved_outdir),
         backend=backend,
@@ -193,10 +204,9 @@ def convert_one_pdf(
         server_url=server_url,
         seal_enable=seal_enable,
         formula_enable=formula_enable,
-        lazy=lazy,
     )
 
-    result.middle_json = merge_discarded_blocks(result.middle_json)
+    middle = merge_discarded_blocks(middle)
 
     if with_image_understanding:
         if not image_screening_models:
@@ -206,7 +216,7 @@ def convert_one_pdf(
         generate_image_understanding(
             outdir=resolved_outdir,
             pdf_path=resolved_pdf_path,
-            result=result,
+            middle= middle,
             image_screening_models=image_screening_models,
             image_understanding_models=image_understanding_models,
             image_screening_base_url=image_screening_base_url,
@@ -216,56 +226,25 @@ def convert_one_pdf(
             model_pricing_json=model_pricing_json,
             lazy=lazy,
         )
-    _merge_image_understanding_if_present(resolved_outdir, result=result)
-    return result
 
-
-def render_result(outdir : Path, result : Result):
-    markdown_text = result_to_markdown(
-        result,
-        options= render_rag,
+    middle = _merge_image_understanding_if_present(resolved_outdir, middle)
+    return Result(
+        middle= middle,
+        source_path= str(pdf_path),
+        extracted_by= extracted_by,
     )
+
+
+def render_middle(outdir : Path, middle: Middle):
+    markdown_text = middle_to_markdown(middle, options= render_rag)
     text_md = outdir / "text.md"
     text_md.write_text(markdown_text, encoding="utf-8")
     logger.info("wrote %s", text_md)
 
-    html_text = result_to_html(
-        result, 
-        options= render_html,
-    )
+    html_text = middle_to_html(middle, options= render_html)
     if html_text is None:
         logger.info("pandoc not found or failed; skip HTML conversion")
     else:
         text_html = outdir / "text.html"
         text_html.write_text(html_text, encoding="utf-8")
         logger.info("wrote %s", text_html)
-
-
-__all__ = [
-    "build_images_file",
-    "compute_middle_json_sha256",
-    "convert_one_pdf",
-    "convert_pdf_to_middle",
-    "generate_image_understanding",
-    "image_refs_from_middle",
-    "image_result_from_understanding_record",
-    "image_understanding_run_from_screening",
-    "iter_screening_records_from_refs",
-    "iter_understanding_records_from_screening",
-    "load_completed_screening_keys",
-    "load_completed_understanding_keys",
-    "load_image_refs_from_middle_json",
-    "load_images_file_json",
-    "load_pricing_overrides",
-    "load_screening_records_jsonl",
-    "load_understanding_records_jsonl",
-    "markdown_to_html",
-    "merge_discarded_blocks",
-    "merge_images_into_middle",
-    "merge_understanding_into_middle",
-    "middle_to_html",
-    "middle_to_markdown",
-    "pricing_for_model",
-    "result_to_html",
-    "result_to_markdown",
-]

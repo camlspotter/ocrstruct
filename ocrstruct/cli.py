@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from ocrstruct.api import convert_one_pdf, render_result
+from ocrstruct.api import convert_one_pdf, render_middle
 
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ def main() -> int:
             image_understanding_api_key=args.image_understanding_api_key,
             model_pricing_json=args.model_pricing_json,
         )
-        render_result(outdir, result)
+        render_middle(outdir, result.middle)
     return 0
 
 
