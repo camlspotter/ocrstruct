@@ -307,8 +307,15 @@ def analyze_images_and_embed_into_middle(
     screening_vlm_config: VLMConfig,
     understanding_vlm_config: VLMConfig,
 ) -> Middle:
-    dict = _analyze_images(middle, pdf_path, outdir, screening_vlm_config, understanding_vlm_config)
-    return _embed_into_middle(middle, dict)
+    if dict:= _analyze_images(
+        middle, 
+        pdf_path, 
+        outdir, 
+        screening_vlm_config, 
+        understanding_vlm_config
+    ):
+        return _embed_into_middle(middle, dict)
+    return middle
 
 
 def _analyze_images(
@@ -318,6 +325,11 @@ def _analyze_images(
     screening_vlm_config: VLMConfig,
     understanding_vlm_config: VLMConfig,
 ) -> dict[ImageRef, tuple[ScreeningResult, UnderstandingResult]]:
+    images = image_refs_from_middle(middle, pdf_path= pdf_path, outdir= outdir)
+    if not images:
+        return {}
+
+    logger.info('Analyzing %d images', len(images))
     cache = load_cache(outdir)
     results = {}
     with open(cache_path(outdir), 'a') as f:
@@ -328,6 +340,7 @@ def _analyze_images(
             if result := cache.get(cache_key, None):
                 pass
             else:
+                logger.info('Analyzing image %s', ref.image_path)
                 screening_result = run_image_screening(screening_vlm_config, ref).result
                 understanding_result = run_image_understanding(understanding_vlm_config, ref, screening_result).result
                 result = (screening_result, understanding_result)
